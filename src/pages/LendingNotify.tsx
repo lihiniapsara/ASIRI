@@ -17,18 +17,57 @@ import {
     CheckCircle,
     Loader
 } from 'lucide-react';
+import {getBooks} from "../services/bookService.ts";
+import {getAllReaders} from "../services/readerService.ts";
+import type {Book} from "../types/Book.ts";
+import type {Reader} from "../types/Reader.ts";
+import type {Lending} from "../types/Lending.ts";
 
-interface Lending {
+/*// Mock services - replace with your actual imports
+const getBooks = async () => {
+    return [
+        { _id: 'BK001', name: 'Pride and Prejudice', publicationYear: '1813' },
+        { _id: 'BK002', name: 'To Kill a Mockingbird', publicationYear: '1960' },
+        { _id: 'BK003', name: '1984', publicationYear: '1949' },
+        { _id: 'BK004', name: 'The Great Gatsby', publicationYear: '1925' }
+    ];
+};
+
+const getAllReaders = async () => {
+    return [
+        { _id: 'BC001', firstName: 'Kasun', lastName: 'Perera', email: 'kasun.perera@gmail.com' },
+        { _id: 'BC002', firstName: 'Nimal', lastName: 'Silva', email: 'nimal.silva@yahoo.com' },
+        { _id: 'BC003', firstName: 'Saman', lastName: 'Fernando', email: 'saman.fernando@hotmail.com' },
+        { _id: 'BC004', firstName: 'Amara', lastName: 'Jayasinghe', email: 'amara.jayasinghe@outlook.com' }
+    ];
+};*/
+
+/*
+interface Book {
+    _id: string;
+    name: string;
+    publicationYear: string;
+}
+
+interface Reader {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+*/
+
+/*interface Lending {
     _id: string;
     bookID: string;
     userId: string;
     lendingDate: string;
     returnDate: string;
     status: 'active' | 'returned' | 'overdue';
-    bookName?: string;
-    userName?: string;
-    userEmail?: string;
-}
+    bookName: string;
+    userName: string;
+    userEmail: string;
+}*/
 
 interface Notification {
     id: string;
@@ -104,6 +143,8 @@ const LendingManagePage = () => {
         }
     ]);
 
+    const [books, setBooks] = useState<Book[]>([]);
+    const [readers, setReaders] = useState<Reader[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [showModal, setShowModal] = useState(false);
@@ -127,8 +168,34 @@ const LendingManagePage = () => {
         userId: '',
         lendingDate: new Date().toISOString().split('T')[0],
         returnDate: '',
-        status: 'active' as 'active' | 'returned' | 'overdue'
+        status: 'active' as 'active' | 'returned' | 'overdue',
+        userEmail: '',
+        userName: '',
+        bookName: ''
     });
+
+    useEffect(() => {
+        fetchBooks();
+        fetchReaders();
+    }, []);
+
+    const fetchBooks = async () => {
+        try {
+            const response = await getBooks();
+            setBooks(response);
+        } catch (error) {
+            console.error('Error fetching books:', error);
+        }
+    };
+
+    const fetchReaders = async () => {
+        try {
+            const response = await getAllReaders();
+            setReaders(response);
+        } catch (error) {
+            console.error('Error fetching readers:', error);
+        }
+    };
 
     // Email templates
     const emailTemplates = {
@@ -226,6 +293,44 @@ Library Management Team`
         return date.toISOString().split('T')[0];
     };
 
+    // Function to handle book selection
+    const handleBookSelect = (bookId: string) => {
+        const selectedBook = books.find(book => book._id === bookId);
+        if (selectedBook) {
+            setFormData(prev => ({
+                ...prev,
+                bookID: bookId,
+                bookName: selectedBook.name
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                bookID: bookId,
+                bookName: ''
+            }));
+        }
+    };
+
+    // Function to handle reader selection
+    const handleReaderSelect = (userId: string) => {
+        const selectedReader = readers.find(reader => reader._id === userId);
+        if (selectedReader) {
+            setFormData(prev => ({
+                ...prev,
+                userId: userId,
+                userName: `${selectedReader.firstName} ${selectedReader.lastName}`,
+                userEmail: selectedReader.email
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                userId: userId,
+                userName: '',
+                userEmail: ''
+            }));
+        }
+    };
+
     const filteredLendings = lendings.filter(lending => {
         const matchesSearch =
             lending.bookID.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -298,6 +403,19 @@ Library Management Team`
         }
     };
 
+    const resetFormData = () => {
+        setFormData({
+            bookID: '',
+            userId: '',
+            lendingDate: new Date().toISOString().split('T')[0],
+            returnDate: '',
+            status: 'active',
+            userEmail: '',
+            userName: '',
+            bookName: ''
+        });
+    };
+
     const handleSubmit = () => {
         if (!formData.bookID || !formData.userId || !formData.lendingDate || !formData.returnDate) {
             alert('Please fill in all required fields');
@@ -313,21 +431,14 @@ Library Management Team`
         } else {
             const newLending: Lending = {
                 _id: Date.now().toString(),
-                ...formData,
-                bookName: `Book ${formData.bookID}`,
-                userName: `User ${formData.userId}`,
-                userEmail: `user${formData.userId.toLowerCase()}@email.com`
+                ...formData
             };
+
+            console.log(newLending);
             setLendings([...lendings, newLending]);
         }
 
-        setFormData({
-            bookID: '',
-            userId: '',
-            lendingDate: new Date().toISOString().split('T')[0],
-            returnDate: '',
-            status: 'active'
-        });
+        resetFormData();
         setShowModal(false);
         setEditingLending(null);
     };
@@ -339,7 +450,10 @@ Library Management Team`
             userId: lending.userId,
             lendingDate: lending.lendingDate,
             returnDate: lending.returnDate,
-            status: lending.status
+            status: lending.status,
+            bookName: lending.bookName,
+            userEmail: lending.userEmail,
+            userName: lending.userName
         });
         setShowModal(true);
     };
@@ -640,55 +754,51 @@ Library Management Team`
                                                 isDueSoon ? 'text-yellow-600 font-medium' : 'text-gray-900'
                                         }`}>
                                             {lending.returnDate}
-                                            {isOverdue && <div className="text-xs text-red-500">({isOverdue.daysOverdue} days overdue)</div>}
+                                            {isOverdue && <div className="text-xs text-red-600">
+                                                (Overdue by {notifications.find(n => n.lending._id === lending._id)?.daysOverdue} days)
+                                            </div>}
                                             {isDueSoon && <div className="text-xs text-yellow-600">
-                                                ({isDueSoon.daysDue === 0 ? 'Due today' : `Due in ${isDueSoon.daysDue} days`})
+                                                (Due in {notifications.find(n => n.lending._id === lending._id)?.daysDue} days)
                                             </div>}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
-                                                lending.status
-                                            )}`}
-                                        >
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(lending.status)}`}>
                                             {getStatusIcon(lending.status)}
-                                            {lending.status}
+                                            <span className="ml-1 capitalize">{lending.status}</span>
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => openEmailModal(lending,
-                                                    isOverdue ? 'overdue' : 'reminder'
-                                                )}
-                                                className="text-purple-600 hover:text-purple-900 bg-purple-100 hover:bg-purple-200 p-1 rounded transition-colors"
-                                                aria-label="Send Email"
-                                                title="Send Email"
-                                            >
-                                                <Mail className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(lending)}
-                                                className="text-blue-600 hover:text-blue-900"
-                                                aria-label="Edit"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            {lending.status === 'active' && (
-                                                <button
-                                                    onClick={() => handleReturn(lending._id)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                    aria-label="Mark as Returned"
-                                                    title="Mark as Returned"
-                                                >
-                                                    <Calendar className="h-4 w-4" />
-                                                </button>
+                                        <div className="flex items-center gap-2">
+                                            {lending.status !== 'returned' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleEdit(lending)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openEmailModal(lending, isOverdue ? 'overdue' : 'reminder')}
+                                                        className="text-purple-600 hover:text-purple-900"
+                                                        title="Send Email"
+                                                    >
+                                                        <Send className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReturn(lending._id)}
+                                                        className="text-green-600 hover:text-green-900"
+                                                        title="Mark as Returned"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </button>
+                                                </>
                                             )}
                                             <button
                                                 onClick={() => handleDelete(lending._id)}
                                                 className="text-red-600 hover:text-red-900"
-                                                aria-label="Delete"
+                                                title="Delete"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -702,15 +812,122 @@ Library Management Team`
                 </div>
             </div>
 
+            {/* Lending Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900">
+                                {editingLending ? 'Edit Lending' : 'New Lending'}
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowModal(false);
+                                    setEditingLending(null);
+                                    resetFormData();
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Book</label>
+                                <select
+                                    value={formData.bookID}
+                                    onChange={(e) => handleBookSelect(e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">Select a book</option>
+                                    {books.map(book => (
+                                        <option key={book._id} value={book._id}>
+                                            {book.name} ({book._id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Reader</label>
+                                <select
+                                    value={formData.userId}
+                                    onChange={(e) => handleReaderSelect(e.target.value)}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">Select a reader</option>
+                                    {readers.map(reader => (
+                                        <option key={reader._id} value={reader._id}>
+                                            {reader.firstName} {reader.lastName} ({reader._id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Lending Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.lendingDate}
+                                    onChange={(e) => {
+                                        const lendingDate = e.target.value;
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            lendingDate,
+                                            returnDate: calculateReturnDate(lendingDate)
+                                        }));
+                                    }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Return Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.returnDate}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, returnDate: e.target.value }))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Status</label>
+                                <select
+                                    value={formData.status}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'returned' | 'overdue' }))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="returned">Returned</option>
+                                    <option value="overdue">Overdue</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-2">
+                            <button
+                                onClick={() => {
+                                    setShowModal(false);
+                                    setEditingLending(null);
+                                    resetFormData();
+                                }}
+                                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                            >
+                                {editingLending ? 'Update' : 'Create'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Email Modal */}
             {showEmailModal && selectedLending && (
-                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative max-h-screen overflow-y-auto">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-lg">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Mail className="h-5 w-5 text-purple-500" />
-                                Send Email - {selectedLending.bookName}
-                            </h2>
+                            <h2 className="text-xl font-semibold text-gray-900">Send Email</h2>
                             <button
                                 onClick={() => {
                                     setShowEmailModal(false);
@@ -721,228 +938,99 @@ Library Management Team`
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
-
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Email Type
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">To</label>
+                                <input
+                                    type="email"
+                                    value={selectedLending.userEmail}
+                                    disabled
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Template</label>
                                 <select
                                     value={emailTemplate.type}
                                     onChange={(e) => {
-                                        const newType = e.target.value as EmailTemplate['type'];
-                                        const template = emailTemplates[newType === 'custom' ? 'reminder' : newType];
-                                        setEmailTemplate({
-                                            type: newType,
-                                            subject: template.subject
-                                                .replace('{bookName}', selectedLending.bookName || '')
-                                                .replace('{bookID}', selectedLending.bookID),
-                                            body: newType === 'custom'
-                                                ? ''
-                                                : template.body
+                                        const type = e.target.value as 'reminder' | 'overdue' | 'return_confirmation' | 'custom';
+                                        if (type !== 'custom') {
+                                            const template = emailTemplates[type];
+                                            setEmailTemplate({
+                                                type,
+                                                subject: template.subject
+                                                    .replace('{bookName}', selectedLending.bookName || '')
+                                                    .replace('{bookID}', selectedLending.bookID),
+                                                body: template.body
                                                     .replace(/{userName}/g, selectedLending.userName || '')
                                                     .replace(/{bookName}/g, selectedLending.bookName || '')
                                                     .replace(/{bookID}/g, selectedLending.bookID)
                                                     .replace(/{lendingDate}/g, selectedLending.lendingDate)
                                                     .replace(/{returnDate}/g, selectedLending.returnDate)
                                                     .replace('{actualReturnDate}', new Date().toISOString().split('T')[0])
-                                                    .replace('{daysOverdue}',
-                                                        (notifications.find(n => n.lending._id === selectedLending._id && n.type === 'overdue')?.daysOverdue || 0).toString())
-                                        });
+                                                    .replace('{daysOverdue}', (notifications.find(n => n.lending._id === selectedLending._id && n.type === 'overdue')?.daysOverdue || 0).toString())
+                                            });
+                                        } else {
+                                            setEmailTemplate({ type: 'custom', subject: '', body: '' });
+                                        }
                                     }}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="reminder">Reminder</option>
                                     <option value="overdue">Overdue Notice</option>
                                     <option value="return_confirmation">Return Confirmation</option>
-                                    <option value="custom">Custom Email</option>
+                                    <option value="custom">Custom</option>
                                 </select>
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    To
-                                </label>
-                                <input
-                                    type="email"
-                                    value={selectedLending.userEmail}
-                                    readOnly
-                                    className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Subject
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">Subject</label>
                                 <input
                                     type="text"
                                     value={emailTemplate.subject}
-                                    onChange={(e) => setEmailTemplate({ ...emailTemplate, subject: e.target.value })}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) => setEmailTemplate(prev => ({ ...prev, subject: e.target.value }))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                    disabled={emailTemplate.type !== 'custom'}
                                 />
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Message
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">Message</label>
                                 <textarea
                                     value={emailTemplate.body}
-                                    onChange={(e) => setEmailTemplate({ ...emailTemplate, body: e.target.value })}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-40"
+                                    onChange={(e) => setEmailTemplate(prev => ({ ...prev, body: e.target.value }))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 h-40"
+                                    disabled={emailTemplate.type !== 'custom'}
                                 />
                             </div>
-
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => {
-                                        setShowEmailModal(false);
-                                        setSelectedLending(null);
-                                    }}
-                                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={sendEmail}
-                                    disabled={sendingEmail}
-                                    className={`px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 ${
-                                        sendingEmail ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
-                                >
-                                    {sendingEmail ? (
-                                        <>
-                                            <Loader className="h-4 w-4 animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send className="h-4 w-4" />
-                                            Send Email
-                                        </>
-                                    )}
-                                </button>
-                            </div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Lending Form Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold">
-                                {editingLending ? 'Edit Lending' : 'New Lending'}
-                            </h2>
+                        <div className="mt-6 flex justify-end gap-2">
                             <button
                                 onClick={() => {
-                                    setShowModal(false);
-                                    setEditingLending(null);
-                                    setFormData({
-                                        bookID: '',
-                                        userId: '',
-                                        lendingDate: new Date().toISOString().split('T')[0],
-                                        returnDate: '',
-                                        status: 'active'
-                                    });
+                                    setShowEmailModal(false);
+                                    setSelectedLending(null);
                                 }}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                             >
-                                <X className="h-5 w-5" />
+                                Cancel
                             </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Book ID
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.bookID}
-                                    onChange={(e) => setFormData({ ...formData, bookID: e.target.value })}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    User ID
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.userId}
-                                    onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Lending Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.lendingDate}
-                                    onChange={(e) => {
-                                        const lendingDate = e.target.value;
-                                        setFormData({
-                                            ...formData,
-                                            lendingDate,
-                                            returnDate: calculateReturnDate(lendingDate)
-                                        });
-                                    }}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Return Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.returnDate}
-                                    onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Status
-                                </label>
-                                <select
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'returned' | 'overdue' })}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="active">Active</option>
-                                    <option value="returned">Returned</option>
-                                    <option value="overdue">Overdue</option>
-                                </select>
-                            </div>
-
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        setEditingLending(null);
-                                    }}
-                                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSubmit}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                >
-                                    {editingLending ? 'Update' : 'Create'}
-                                </button>
-                            </div>
+                            <button
+                                onClick={sendEmail}
+                                disabled={sendingEmail}
+                                className={`px-4 py-2 text-white rounded-lg flex items-center gap-2 ${
+                                    sendingEmail ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                                }`}
+                            >
+                                {sendingEmail ? (
+                                    <>
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                        Sending...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="h-4 w-4" />
+                                        Send Email
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
