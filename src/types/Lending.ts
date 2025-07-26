@@ -2,7 +2,7 @@
 export interface Lending {
     _id: string;
     bookID: string;
-    userId: string;
+    userID: string;
     lendingDate: string;
     returnDate: string;
     status: 'active' | 'returned' | 'overdue';
@@ -10,3 +10,5 @@ export interface Lending {
     userName: string;
     userEmail: string;
 }
+
+export type LendingFormData = Omit<Lending, '_id'>;

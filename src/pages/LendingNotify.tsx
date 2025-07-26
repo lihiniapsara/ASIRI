@@ -22,52 +22,8 @@ import {getAllReaders} from "../services/readerService.ts";
 import type {Book} from "../types/Book.ts";
 import type {Reader} from "../types/Reader.ts";
 import type {Lending} from "../types/Lending.ts";
+import {addLending} from "../services/lendingService.ts";
 
-/*// Mock services - replace with your actual imports
-const getBooks = async () => {
-    return [
-        { _id: 'BK001', name: 'Pride and Prejudice', publicationYear: '1813' },
-        { _id: 'BK002', name: 'To Kill a Mockingbird', publicationYear: '1960' },
-        { _id: 'BK003', name: '1984', publicationYear: '1949' },
-        { _id: 'BK004', name: 'The Great Gatsby', publicationYear: '1925' }
-    ];
-};
-
-const getAllReaders = async () => {
-    return [
-        { _id: 'BC001', firstName: 'Kasun', lastName: 'Perera', email: 'kasun.perera@gmail.com' },
-        { _id: 'BC002', firstName: 'Nimal', lastName: 'Silva', email: 'nimal.silva@yahoo.com' },
-        { _id: 'BC003', firstName: 'Saman', lastName: 'Fernando', email: 'saman.fernando@hotmail.com' },
-        { _id: 'BC004', firstName: 'Amara', lastName: 'Jayasinghe', email: 'amara.jayasinghe@outlook.com' }
-    ];
-};*/
-
-/*
-interface Book {
-    _id: string;
-    name: string;
-    publicationYear: string;
-}
-
-interface Reader {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-}
-*/
-
-/*interface Lending {
-    _id: string;
-    bookID: string;
-    userId: string;
-    lendingDate: string;
-    returnDate: string;
-    status: 'active' | 'returned' | 'overdue';
-    bookName: string;
-    userName: string;
-    userEmail: string;
-}*/
 
 interface Notification {
     id: string;
@@ -89,7 +45,7 @@ const LendingManagePage = () => {
         {
             _id: '1',
             bookID: 'BK001',
-            userId: 'BC001',
+            userID: 'BC001',
             lendingDate: '2024-07-15',
             returnDate: '2024-07-29',
             status: 'active',
@@ -100,7 +56,7 @@ const LendingManagePage = () => {
         {
             _id: '2',
             bookID: 'BK002',
-            userId: 'BC002',
+            userID: 'BC002',
             lendingDate: '2024-07-10',
             returnDate: '2024-07-20',
             status: 'overdue',
@@ -111,7 +67,7 @@ const LendingManagePage = () => {
         {
             _id: '3',
             bookID: 'BK003',
-            userId: 'BC003',
+            userID: 'BC003',
             lendingDate: '2024-07-01',
             returnDate: '2024-07-15',
             status: 'returned',
@@ -122,7 +78,7 @@ const LendingManagePage = () => {
         {
             _id: '4',
             bookID: 'BK001',
-            userId: 'BC002',
+            userID: 'BC002',
             lendingDate: '2024-06-20',
             returnDate: '2024-07-04',
             status: 'returned',
@@ -133,7 +89,7 @@ const LendingManagePage = () => {
         {
             _id: '5',
             bookID: 'BK004',
-            userId: 'BC004',
+            userID: 'BC004',
             lendingDate: '2024-07-20',
             returnDate: '2024-07-25',
             status: 'active',
@@ -165,7 +121,7 @@ const LendingManagePage = () => {
 
     const [formData, setFormData] = useState({
         bookID: '',
-        userId: '',
+        userID: '',
         lendingDate: new Date().toISOString().split('T')[0],
         returnDate: '',
         status: 'active' as 'active' | 'returned' | 'overdue',
@@ -334,7 +290,7 @@ Library Management Team`
     const filteredLendings = lendings.filter(lending => {
         const matchesSearch =
             lending.bookID.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lending.userId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lending.userID.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lending.bookName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lending.userName?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -406,7 +362,7 @@ Library Management Team`
     const resetFormData = () => {
         setFormData({
             bookID: '',
-            userId: '',
+            userID: '',
             lendingDate: new Date().toISOString().split('T')[0],
             returnDate: '',
             status: 'active',
@@ -416,8 +372,8 @@ Library Management Team`
         });
     };
 
-    const handleSubmit = () => {
-        if (!formData.bookID || !formData.userId || !formData.lendingDate || !formData.returnDate) {
+    const handleSubmit =  async () => {
+        if (!formData.bookID || !formData.userID || !formData.lendingDate || !formData.returnDate) {
             alert('Please fill in all required fields');
             return;
         }
@@ -435,7 +391,10 @@ Library Management Team`
             };
 
             console.log(newLending);
-            setLendings([...lendings, newLending]);
+            const response = await addLending(newLending);
+            //getAll lendings
+            setLendings([...lendings, response]);
+
         }
 
         resetFormData();
@@ -447,7 +406,7 @@ Library Management Team`
         setEditingLending(lending);
         setFormData({
             bookID: lending.bookID,
-            userId: lending.userId,
+            userID: lending.userID,
             lendingDate: lending.lendingDate,
             returnDate: lending.returnDate,
             status: lending.status,
@@ -734,7 +693,7 @@ Library Management Team`
                                                 {isDueSoon && <Clock className="h-4 w-4 text-yellow-500" />}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                👤 {lending.userName} ({lending.userId})
+                                                👤 {lending.userName} ({lending.userID})
                                             </div>
                                         </div>
                                     </td>
@@ -850,7 +809,7 @@ Library Management Team`
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Reader</label>
                                 <select
-                                    value={formData.userId}
+                                    value={formData.userID}
                                     onChange={(e) => handleReaderSelect(e.target.value)}
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                                 >
