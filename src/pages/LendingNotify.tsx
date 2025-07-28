@@ -21,8 +21,10 @@ import {getBooks} from "../services/bookService.ts";
 import {getAllReaders} from "../services/readerService.ts";
 import type {Book} from "../types/Book.ts";
 import type {Reader} from "../types/Reader.ts";
-import type {Lending} from "../types/Lending.ts";
-import {addLending} from "../services/lendingService.ts";
+import type {Lending, LendingFormData} from "../types/Lending.ts";
+import {addLending, deleteLending, getLending, markAsReturned, updateLending} from "../services/lendingService.ts";
+import type {Email} from "../types/Email.ts";
+import {emailSender} from "../services/emailService.ts";
 
 
 interface Notification {
@@ -42,62 +44,20 @@ interface EmailTemplate {
 const LendingManagePage = () => {
     // Sample data with email addresses
     const [lendings, setLendings] = useState<Lending[]>([
-        {
-            _id: '1',
-            bookID: 'BK001',
-            userID: 'BC001',
-            lendingDate: '2024-07-15',
-            returnDate: '2024-07-29',
-            status: 'active',
-            bookName: 'Pride and Prejudice',
-            userName: 'Kasun Perera',
-            userEmail: 'kasun.perera@gmail.com'
-        },
-        {
-            _id: '2',
-            bookID: 'BK002',
-            userID: 'BC002',
-            lendingDate: '2024-07-10',
-            returnDate: '2024-07-20',
-            status: 'overdue',
-            bookName: 'To Kill a Mockingbird',
-            userName: 'Nimal Silva',
-            userEmail: 'nimal.silva@yahoo.com'
-        },
-        {
-            _id: '3',
-            bookID: 'BK003',
-            userID: 'BC003',
-            lendingDate: '2024-07-01',
-            returnDate: '2024-07-15',
-            status: 'returned',
-            bookName: '1984',
-            userName: 'Saman Fernando',
-            userEmail: 'saman.fernando@hotmail.com'
-        },
-        {
-            _id: '4',
-            bookID: 'BK001',
-            userID: 'BC002',
-            lendingDate: '2024-06-20',
-            returnDate: '2024-07-04',
-            status: 'returned',
-            bookName: 'Pride and Prejudice',
-            userName: 'Nimal Silva',
-            userEmail: 'nimal.silva@yahoo.com'
-        },
-        {
-            _id: '5',
-            bookID: 'BK004',
-            userID: 'BC004',
-            lendingDate: '2024-07-20',
-            returnDate: '2024-07-25',
-            status: 'active',
-            bookName: 'The Great Gatsby',
-            userName: 'Amara Jayasinghe',
-            userEmail: 'amara.jayasinghe@outlook.com'
-        }
     ]);
+
+    useEffect(() => {
+        fetchLending();
+    }, []);
+
+    const fetchLending = async () => {
+        try {
+            const response = await getLending();
+            setLendings(response);
+        } catch (error) {
+            console.error('Error fetching lendings:', error);
+        }
+    };
 
     const [books, setBooks] = useState<Book[]>([]);
     const [readers, setReaders] = useState<Reader[]>([]);
@@ -268,19 +228,19 @@ Library Management Team`
     };
 
     // Function to handle reader selection
-    const handleReaderSelect = (userId: string) => {
-        const selectedReader = readers.find(reader => reader._id === userId);
+    const handleReaderSelect = (userID: string) => {
+        const selectedReader = readers.find(reader => reader._id === userID);
         if (selectedReader) {
             setFormData(prev => ({
                 ...prev,
-                userId: userId,
+                userID: userID,
                 userName: `${selectedReader.firstName} ${selectedReader.lastName}`,
                 userEmail: selectedReader.email
             }));
         } else {
             setFormData(prev => ({
                 ...prev,
-                userId: userId,
+                userId: userID,
                 userName: '',
                 userEmail: ''
             }));
@@ -334,14 +294,15 @@ Library Management Team`
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // In real implementation, you would call your backend API here
-            const emailData = {
+
+            const emailData : Email = {
                 to: selectedLending.userEmail,
                 subject: emailTemplate.subject,
-                body: emailTemplate.body,
-                lendingId: selectedLending._id
+                body: emailTemplate.body
             };
 
-            console.log('Sending email:', emailData);
+            const response = await emailSender(emailData);
+            console.log('Email sent:', response);
 
             // Mark as sent
             setEmailSent([...emailSent, selectedLending._id]);
@@ -379,14 +340,11 @@ Library Management Team`
         }
 
         if (editingLending) {
-            setLendings(lendings.map(lending =>
-                lending._id === editingLending._id
-                    ? { ...lending, ...formData }
-                    : lending
-            ));
+            await updateLending(editingLending._id, formData);
+            fetchLending()
+
         } else {
-            const newLending: Lending = {
-                _id: Date.now().toString(),
+            const newLending: LendingFormData = {
                 ...formData
             };
 
@@ -417,23 +375,25 @@ Library Management Team`
         setShowModal(true);
     };
 
-    const handleDelete = (lendingId: string) => {
+    const handleDelete = async (lendingId: string) => {
         if (window.confirm('Are you sure you want to delete this lending record?')) {
+            await deleteLending(lendingId);
             setLendings(lendings.filter(lending => lending._id !== lendingId));
         }
     };
 
-    const handleReturn = (lendingId: string) => {
+    const handleReturn = async (lendingId: string) => {
+        console.log("returned ")
         const lending = lendings.find(l => l._id === lendingId);
         if (lending) {
-            setLendings(lendings.map(l =>
-                l._id === lendingId
-                    ? { ...l, status: 'returned' as 'returned', returnDate: new Date().toISOString().split('T')[0] }
-                    : l
-            ));
 
+            const response = await markAsReturned(lendingId);
+            console.log(response , " returner unta passe");
+            fetchLending()
             // Automatically open return confirmation email
-            openEmailModal(lending, 'return_confirmation');
+            if (response){
+                openEmailModal(lending, 'return_confirmation');
+            }
         }
     };
 
@@ -688,12 +648,12 @@ Library Management Team`
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div>
                                             <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                                📚 {lending.bookName} ({lending.bookID})
+                                                📚 {lending.bookName}
                                                 {isOverdue && <AlertTriangle className="h-4 w-4 text-red-500" />}
                                                 {isDueSoon && <Clock className="h-4 w-4 text-yellow-500" />}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                👤 {lending.userName} ({lending.userID})
+                                                👤 {lending.userName})
                                             </div>
                                         </div>
                                     </td>
@@ -705,14 +665,14 @@ Library Management Team`
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{lending.lendingDate}</div>
+                                        <div className="text-sm text-gray-900">{lending.lendingDate.split('T')[0]}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className={`text-sm ${
                                             isOverdue ? 'text-red-600 font-medium' :
                                                 isDueSoon ? 'text-yellow-600 font-medium' : 'text-gray-900'
                                         }`}>
-                                            {lending.returnDate}
+                                            {lending.returnDate.split('T')[0]}
                                             {isOverdue && <div className="text-xs text-red-600">
                                                 (Overdue by {notifications.find(n => n.lending._id === lending._id)?.daysOverdue} days)
                                             </div>}
