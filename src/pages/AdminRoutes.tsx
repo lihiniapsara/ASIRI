@@ -1,16 +1,16 @@
-import { /*Navigate,*/ Outlet } from "react-router-dom"
-/*
+import {Navigate, Outlet} from "react-router-dom"
+
 import { useAuth } from "../context/useAuth"
-*/
+
 
 const AdminRoutes = () => {
-/*
-  const { isLoggedIn } = useAuth()
-*/
 
-/*
+  const { isLoggedIn } = useAuth()
+
+
+
   if (!isLoggedIn) return <Navigate to='/login' />
-*/
+
 
   return (
     <div className='flex h-screen overflow-hidden'>

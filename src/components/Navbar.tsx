@@ -3,11 +3,11 @@ import {
   Users,
   BookOpen,
   ArrowLeftRight,
-  Bell,
+
   BarChart3,
   LogOut,
   Menu,
-  X,
+  X, PersonStanding,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,7 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'readers', label: 'Readers', icon: Users, path: '/readers' },
     { id: 'books', label: 'Books', icon: BookOpen, path: '/books' },
     { id: 'lendings', label: 'Lendings', icon: ArrowLeftRight, path: '/lendings' },
-    { id: 'notifications', label: 'Notifications', icon: Bell, path: '/notifications' },
+    { id: 'notifications', label: 'Users', icon: PersonStanding, path: '/notifications' },
   ];
 
   const handleNavClick = (itemId: string, path: string) => {

@@ -6,6 +6,8 @@ import AdminRoutes from "./pages/AdminRoutes"
 import ReaderManagePage from "./pages/ReaderManage.tsx";
 import BooksPage from "./pages/BooksPage.tsx";
 import LendingNotify from "./pages/LendingNotify.tsx";
+import UserManagePage from "./pages/UserPage.tsx";
+import LibraryDashboard from "./pages/Dashboard.tsx";
 
 
 const router = createBrowserRouter([
@@ -19,10 +21,11 @@ const router = createBrowserRouter([
       {
         element: <AdminRoutes />,
         children: [
-          { path: "/dashboard", element: <div>Dashboard</div> },
+          { path: "/dashboard", element: <LibraryDashboard /> },
           { path: "/readers", element: <ReaderManagePage /> },
           { path: "/books", element: <BooksPage /> },
           { path: "/lendings", element: <LendingNotify /> },
+          { path: "/notifications", element: <UserManagePage /> },
         ],
       },
     ],

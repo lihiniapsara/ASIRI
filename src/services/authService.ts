@@ -23,7 +23,7 @@ export const signUp = async (userData: User): Promise<SignUpResponse> => {
   return response.data
 }
 
-export const login = async (loginData: Omit<User, "name">): Promise<LoginResponse> => {
+export const login = async (loginData: Omit<User, "name"  | "role">): Promise<LoginResponse> => {
   const response = await apiClient.post("/auth/login", loginData)
   return response.data
 }

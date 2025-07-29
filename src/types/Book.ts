@@ -1,4 +1,4 @@
-export type Book = {
+export type Books = {
     _id: string
     name: string
     title: string
@@ -9,4 +9,4 @@ export type Book = {
     status: 'available' | 'unavailable' | 'restricted'
 }
 
-export type BookFormData = Omit<Book, '_id'>
+export type BookFormData = Omit<Books, '_id'>
