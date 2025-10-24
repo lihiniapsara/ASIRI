@@ -1,7 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { submitQuiz } from '../services/quizService';
-import type {QuizQuestion} from "../types/Quiz.ts";
+import type { QuizQuestion } from "../types/Quiz.ts";
+import emailjs from '@emailjs/browser';
+
+// Initialize EmailJS
+try {
+    emailjs.init('TABZRK7DGS_KJI5Ox');
+} catch (error) {
+    console.error('Failed to initialize EmailJS:', error);
+}
 
 import asiriLogo from '../assets/asiri-logo.png';
 
@@ -23,7 +30,6 @@ const HealthQuestionnaire = () => {
     const [submissionCompleted, setSubmissionCompleted] = useState(false);
     const [logoError, setLogoError] = useState(false);
 
-    // Get user data from navigation state
     const user: User | null = location.state?.user || null;
 
     const PRIMARY_DARK = '#07294bff';
@@ -75,65 +81,63 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-    const handleOK = () => {
-        if (selectedOption !== null) {
-            const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
-            setScores(newScores);
+    const calculateTotalScore = () => scores.reduce((sum, score) => sum + score, 0);
 
-            if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion(currentQuestion + 1);
-                setSelectedOption(null);
-            } else {
-                setShowResults(true);
-            }
-        } else {
-            alert('Please select an option.');
+    const sendQuizResultsEmail = async (totalScore: number) => {
+        if (!user?.email) {
+            console.log('No user email found, skipping email sending');
+            return;
+        }
+
+        const scorePercentage = Math.round((totalScore / (questions.length * 100)) * 100);
+
+        const templateParams = {
+            name: user?.name || 'User',
+            email: user.email,
+            title: user?.title || '',
+            message: `Your health assessment results are ready!\n\n` +
+                `Total Score: ${totalScore} (${scorePercentage}%)\n` +
+                `Questions Answered: 4/4\n\n` +
+                `Thank you for completing the assessment!`
+        };
+
+        try {
+            await emailjs.send(
+                'service_43k5omt',
+                'template_su223cy',
+                templateParams,
+                'TABZRK7DGS_KJI5Ox'
+            );
+            console.log('Quiz results email sent successfully');
+        } catch (error) {
+            console.error('Failed to send quiz results email:', error);
         }
     };
 
-    // Automatically submit results when showResults becomes true
-    useEffect(() => {
-        const submitResultsAutomatically = async () => {
-            if (showResults && !isSubmitting && !submissionCompleted) {
-                setIsSubmitting(true);
-                try {
-                    const totalScore = scores.reduce((sum, score) => sum + score, 0);
-                    const maxScore = 400;
-                    const percentage = Math.round((totalScore / maxScore) * 100);
+    const handleOK = async () => {
+        if (selectedOption === null) return;
 
-                    const quizResult = {
-                        name: user ? `${user.title} ${user.name}` : 'User',
-                        totalScore,
-                        scores,
-                        percentage,
-                        email: user?.email || null
-                    };
+        const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
+        setScores(newScores);
 
-                    const result = await submitQuiz(quizResult);
+        if (currentQuestion < questions.length - 1) {
+            setCurrentQuestion(currentQuestion + 1);
+            setSelectedOption(null);
+        } else {
+            setShowResults(true);
+            setIsSubmitting(true);
 
-                    let successMessage = 'Quiz results submitted successfully!';
-                    if (result.emailSent && user?.email) {
-                        successMessage += ` Results sent to ${user.email}`;
-                    } else if (!user?.email) {
-                        successMessage += ' (Add email to receive results)';
-                    }
+            const totalScore = newScores.reduce((sum, score) => sum + score, 0);
 
-                    console.log(successMessage);
-                    setSubmissionCompleted(true);
+            await sendQuizResultsEmail(totalScore);
 
-                } catch (error) {
-                    console.error('Failed to submit quiz results:', error);
-                } finally {
-                    setIsSubmitting(false);
-                }
-            }
-        };
+            setIsSubmitting(false);
+            setSubmissionCompleted(true);
+        }
+    };
 
-        submitResultsAutomatically();
-    }, [showResults, scores, user]);
-
-    const totalScore = scores.reduce((sum, score) => sum + score, 0);
     const maxScore = 400;
+    const totalScore = calculateTotalScore();
     const percentage = Math.round((totalScore / maxScore) * 100);
 
     const getHealthMessage = () => {
@@ -163,7 +167,6 @@ const HealthQuestionnaire = () => {
         };
     };
 
-    // Chevron Right Icon
     const ChevronRight = ({ size = 20, color = "white" }) => (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
             <path d="m9 18 6-6-6-6"/>
@@ -273,7 +276,7 @@ const HealthQuestionnaire = () => {
         );
     };
 
-    // Compact Donut Chart
+
     const DonutChart = ({
                             percentage,
                             size = 120,
@@ -380,6 +383,7 @@ const HealthQuestionnaire = () => {
                     </div>
 
                     {/* Header */}
+
                     <div style={{ marginBottom: '15px' }}>
                         <h1 style={{
                             fontSize: '24px',
@@ -398,10 +402,8 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
-                    {/* Donut Chart */}
                     <DonutChart percentage={percentage} size={100} strokeWidth={10} />
 
-                    {/* Score Range */}
                     <div style={{
                         margin: '8px 0',
                         padding: '6px 12px',
@@ -419,7 +421,6 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
-                    {/* Message */}
                     <div style={{
                         margin: '12px 0',
                         padding: '12px',
@@ -451,7 +452,6 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
-                    {/* Score Breakdown */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr',
@@ -484,7 +484,6 @@ const HealthQuestionnaire = () => {
                         ))}
                     </div>
 
-                    {/* Total Score */}
                     <div style={{
                         margin: '12px 0',
                         padding: '12px',
@@ -508,7 +507,6 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
-                    {/* Submission Status */}
                     <div style={{
                         margin: '12px 0',
                         padding: '10px',
@@ -551,7 +549,6 @@ const HealthQuestionnaire = () => {
                         )}
                     </div>
 
-                    {/* Single Action Button */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
                             onClick={() => navigate('/expert')}
@@ -584,7 +581,6 @@ const HealthQuestionnaire = () => {
         );
     }
 
-    // Questionnaire UI
     const currentQ = questions[currentQuestion];
 
     return (
@@ -668,7 +664,6 @@ const HealthQuestionnaire = () => {
                         </p>
                     )}
 
-                    {/* Options */}
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -741,7 +736,6 @@ const HealthQuestionnaire = () => {
                         ))}
                     </div>
 
-                    {/* OK Button */}
                     <button
                         onClick={handleOK}
                         style={{

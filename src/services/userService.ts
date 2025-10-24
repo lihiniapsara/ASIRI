@@ -12,6 +12,7 @@ export const registerUser = async (user: User) => {
       createdAt: new Date().toISOString(),
     });
     console.log('User registered with ID: ', docRef.id);
+    localStorage.setItem('user', JSON.stringify(user));
     return { success: true, userId: docRef.id };
   } catch (error) {
     console.error('Error adding user: ', error);

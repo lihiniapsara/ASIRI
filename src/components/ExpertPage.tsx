@@ -1,78 +1,44 @@
 import { useState, useEffect } from 'react';
-
-// PNG logo import - ඔබේ actual file path එකට change කරන්න
+import emailjs from '@emailjs/browser';
 import asiriLogo from '../assets/asiri-logo.png';
 
-const ExpertPage = () => {
+const PRIMARY_BLUE = '#1591cbff';
+const LIGHT_BLUE = '#57bef6ff';
+const VERY_LIGHT_BLUE = '#a8e0ffff';
+
+type Size = 'small' | 'medium' | 'large';
+
+const HealthCardPage = () => {
     const [user, setUser] = useState({
         title: 'Mr.',
         name: '',
+        email: '',
         lifescore: 30,
     });
-
     const [bmiScore, setBmiScore] = useState('');
     const [rstScore, setRstScore] = useState('');
     const [bpScore, setBpScore] = useState('');
     const [logoError, setLogoError] = useState(false);
     const [dataLoaded, setDataLoaded] = useState(false);
 
-    // Colors
-    const PRIMARY_BLUE = '#1591cbff';
-    const LIGHT_BLUE = '#57bef6ff';
-    const VERY_LIGHT_BLUE = '#a8e0ffff';
-
-    // Donut chart variables
-    const progress = user.lifescore / 100;
-    const CIRCLE_SIZE = 100;
-    const STROKE_WIDTH = 10;
-    const radius = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference * (1 - progress);
-
-    // ✅ USER DATA LOAD කිරීම
     useEffect(() => {
         loadUserData();
-
-        // ✅ STORAGE CHANGES LISTEN කිරීම
-        const handleStorageChange = () => {
-            console.log('Storage changed - reloading user data');
-            loadUserData();
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-
-        // ✅ PAGE LOAD වෙද්දීම CHECK කිරීම (interval එකක් සමග)
-        const interval = setInterval(() => {
-            if (!dataLoaded) {
-                loadUserData();
-            }
-        }, 1000);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
-        };
-    }, [dataLoaded]);
+    }, []);
 
     const loadUserData = () => {
         try {
-            const savedUser = localStorage.getItem('currentUser');
+            const savedUser = localStorage.getItem('user');
             if (savedUser) {
                 const userData = JSON.parse(savedUser);
                 console.log('Loaded user data:', userData);
-
-                setUser(prevUser => ({
-                    ...prevUser,
+                setUser({
+                    ...user,
                     title: userData.title || 'Mr.',
-                    name: userData.name || ''
-                }));
-
+                    name: userData.name || '',
+                    email: userData.email || '',
+                    lifescore: userData.lifescore || 30,
+                });
                 setDataLoaded(true);
-
-                // ✅ DATA FRESH එකක් දැයි CHECK කිරීම (5 minutes以内)
-                if (Date.now() - userData.timestamp < 300000) { // 5 minutes
-                    console.log('Fresh user data loaded');
-                }
             } else {
                 console.log('No user data found in local storage');
                 setDataLoaded(true);
@@ -83,47 +49,46 @@ const ExpertPage = () => {
         }
     };
 
-    // ✅ MANUAL REFRESH BUTTON
     const refreshUserData = () => {
-        setDataLoaded(false);
         loadUserData();
     };
 
-    // Logo Component
-    const Logo = ({ size = 'medium' }) => {
-        const sizes = {
-            small: { width: 100, height: 'auto' },
-            medium: { width: 140, height: 'auto' },
-            large: { width: 180, height: 'auto' }
-        };
-
-        const { width, height } = sizes[size] || sizes.medium;
-
-        // If logo fails to load, show text version
-        if (logoError) {
-            return (
-                <div className="text-center text-white font-bold">
-                    <div className="text-xl tracking-wide mb-1">ASIRI</div>
-                    <div className="text-md">HEALTH</div>
-                    <div className="text-xs font-normal opacity-90">Lifescore</div>
-                </div>
-            );
+    const handleSendEmail = () => {
+        if (!user.email) {
+            alert('User email not found. Please log in again.');
+            return;
         }
 
-        return (
-            <div className="flex justify-center items-center mx-auto py-2">
-                <img
-                    src={asiriLogo}
-                    alt="Asiri Health Lifescore"
-                    style={{
-                        width: width,
-                        height: height,
-                        objectFit: 'contain'
-                    }}
-                    onError={() => setLogoError(true)}
-                />
-            </div>
-        );
+        if (!rstScore || !bpScore || !bmiScore) {
+            alert('Please fill in all score fields');
+            return;
+        }
+
+        console.log(user);
+
+        const templateParams = {
+            name: user.name || 'User',
+            email: user.email,
+            title: user.title,
+            message: `Your scores are: RST - ${rstScore}, BP - ${bpScore}, BMI - ${bmiScore}.`
+        };
+
+        const SERVICE_ID = 'service_43k5omt';
+        const TEMPLATE_ID = 'template_su223cy';
+        const PUBLIC_KEY = 'TABzRK7DGS_KJI5Ox';
+
+        emailjs
+            .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
+            .then(() => {
+                alert('Email sent successfully!');
+                setRstScore('');
+                setBpScore('');
+                setBmiScore('');
+            })
+            .catch((error) => {
+                console.error('Email sending failed:', error);
+                alert('Failed to send email. Check console for details.');
+            });
     };
 
     const sendToWhatsApp = () => {
@@ -154,6 +119,49 @@ _Thank you for choosing ASIRI HEALTH_`;
 
         window.open(whatsappUrl, '_blank');
     };
+
+    // Logo Component
+    const Logo = ({ size = 'medium' }: { size?: Size }) => {
+        const sizes: Record<Size, { width: number; height: string }> = {
+            small: { width: 100, height: 'auto' },
+            medium: { width: 140, height: 'auto' },
+            large: { width: 180, height: 'auto' }
+        };
+
+        const { width, height } = sizes[size] || sizes.medium;
+
+        if (logoError) {
+            return (
+                <div className="text-center text-white font-bold">
+                    <div className="text-xl tracking-wide mb-1">ASIRI</div>
+                    <div className="text-md">HEALTH</div>
+                    <div className="text-xs font-normal opacity-90">Lifescore</div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="flex justify-center items-center mx-auto py-2">
+                <img
+                    src={asiriLogo}
+                    alt="Asiri Health Lifescore"
+                    style={{
+                        width: width,
+                        height: height,
+                        objectFit: 'contain'
+                    }}
+                    onError={() => setLogoError(true)}
+                />
+            </div>
+        );
+    };
+
+    const progress = user.lifescore / 100;
+    const CIRCLE_SIZE = 100;
+    const STROKE_WIDTH = 10;
+    const radius = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference * (1 - progress);
 
     return (
         <div style={{
@@ -188,7 +196,7 @@ _Thank you for choosing ASIRI HEALTH_`;
 
                 {/* Main Content - Scrollable area */}
                 <div className="flex-1 p-4 space-y-4 overflow-y-auto w-full max-w-md mx-auto">
-                    {/* ✅ REFRESH BUTTON */}
+                    {/* Refresh Button */}
                     <div className="text-center mb-2">
                         <button
                             onClick={refreshUserData}
@@ -327,16 +335,24 @@ _Thank you for choosing ASIRI HEALTH_`;
                         </div>
                     </div>
 
-                    {/* WhatsApp Button */}
-                    <button
-                        onClick={sendToWhatsApp}
-                        className="w-full h-12 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 rounded-md flex items-center justify-center mt-2"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white" className="mr-2">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
-                        Send to WhatsApp
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="space-y-3 mt-6">
+                        <button
+                            onClick={handleSendEmail}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors shadow-md"
+                        >
+                            📧 Send Email Report
+                        </button>
+                        <button
+                            onClick={sendToWhatsApp}
+                            className="w-full h-12 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 rounded-md flex items-center justify-center"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" className="mr-2">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                            Share on WhatsApp
+                        </button>
+                    </div>
 
                     <p className="text-center text-xs text-gray-600 mt-2">
                         🔒 Your health data is secure and private
@@ -347,4 +363,4 @@ _Thank you for choosing ASIRI HEALTH_`;
     );
 };
 
-export default ExpertPage;
+export default HealthCardPage;
