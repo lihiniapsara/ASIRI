@@ -2,7 +2,13 @@ import apiClient from "./apiClient"
 import type {QuizQuestion, QuizResult} from "../types/Quiz.ts";
 
 // Submit quiz result
-export const submitQuiz = async (result: QuizResult) => {
+export const submitQuiz = async (result: {
+    scores: number[];
+    percentage: number;
+    name: string;
+    totalScore: number;
+    email: string | null
+}) => {
     try {
         const res = await apiClient.post("/quiz/submit", result)
         return res.data
