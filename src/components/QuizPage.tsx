@@ -21,8 +21,6 @@ const HealthQuestionnaire = () => {
     const [authKey, setAuthKey] = useState('');
     const [authError, setAuthError] = useState(false);
     const [logoError, setLogoError] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submissionCompleted, setSubmissionCompleted] = useState(false);
     const navigate = useNavigate();
 
     // Remove auto-applied padding from main element
@@ -115,13 +113,9 @@ const HealthQuestionnaire = () => {
             setSelectedOption(null);
         } else {
             setShowResults(true);
-            setIsSubmitting(true);
 
             const totalScore = newScores.reduce((sum, score) => sum + score, 0);
             await sendQuizResultsEmail(totalScore);
-
-            setIsSubmitting(false);
-            setSubmissionCompleted(true);
         }
     };
 
@@ -528,49 +522,6 @@ const HealthQuestionnaire = () => {
                             {totalScore}<span style={{ fontSize: '14px', opacity: 0.8 }}>/{maxScore}</span>
                         </p>
                     </div>
-
-                    {/* Submission Status */}
-                    {/*<div style={{
-                        margin: '12px 0',
-                        padding: '10px',
-                        backgroundColor: submissionCompleted ? '#e8f5e8' : '#fff3cd',
-                        borderRadius: '8px',
-                        border: `1px solid ${submissionCompleted ? '#d4edda' : '#ffeaa7'}`
-                    }}>
-                        <p style={{
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: submissionCompleted ? '#155724' : '#856404',
-                            margin: '0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                        }}>
-                            {isSubmitting ? (
-                                <>
-                                    <span>📨 Sending results...</span>
-                                </>
-                            ) : submissionCompleted ? (
-                                <>
-                                    <span>✅ Results submitted successfully!</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>⏳ Preparing results...</span>
-                                </>
-                            )}
-                        </p>
-                        {user?.email && submissionCompleted && (
-                            <p style={{
-                                fontSize: '10px',
-                                color: '#155724',
-                                margin: '4px 0 0 0'
-                            }}>
-                                Email sent to: {user.email}
-                            </p>
-                        )}
-                    </div>*/}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
