@@ -1,21 +1,13 @@
-import apiClient from "./apiClient.ts";
+// userService.ts (fixed)
+import apiClient from "./apiClient";
 import type {User} from "../types/User.ts";
 
-export const createUser = async (userData: User) => {
-    const response = await apiClient.post("/user", userData)
-    return response.data
-}
-
-export const getAllUsers = async () => {
-    const response = await apiClient.get("/user")
-    return response.data
-}
-
-export const updateUser = async (_id: string, userData: Omit<User, "_id">) => {
-    const response = await apiClient.put(`/user/${_id}`, userData)
-    return response.data
-}
-
-export const deleteUser = async (_id: string) => {
-    await apiClient.delete(`/user/${_id}`)
-}
+export const registerUser = async (user: User) => {
+    try {
+        const response = await apiClient.post("/users/register", user);  // Already good, but confirm
+        return response.data;
+    } catch (error: any) {
+        console.error("Registration error:", error.response?.data || error.message);
+        throw error;
+    }
+};
