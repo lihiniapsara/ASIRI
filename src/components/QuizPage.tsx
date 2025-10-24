@@ -1,38 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import type { QuizQuestion } from "../types/Quiz.ts";
-import emailjs from '@emailjs/browser';
-
-// Initialize EmailJS
-try {
-    emailjs.init('TABZRK7DGS_KJI5Ox');
-} catch (error) {
-    console.error('Failed to initialize EmailJS:', error);
-}
-
-import asiriLogo from '../assets/asiri-logo.png';
-
-interface User {
-    title: string;
-    name: string;
-    phone: string;
-    email: string;
-}
-
-type Size = 'small' | 'medium' | 'large';
+import {useNavigate} from "react-router-dom";
 
 const HealthQuestionnaire = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
     const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
+    const [selectedOption, setSelectedOption] = useState<number>(0);
     const [scores, setScores] = useState<number[]>([]);
     const [showResults, setShowResults] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submissionCompleted, setSubmissionCompleted] = useState(false);
-    const [logoError, setLogoError] = useState(false);
-
-    const user: User | null = location.state?.user || null;
+    const [showAuthPopup, setShowAuthPopup] = useState(false);
+    const [authKey, setAuthKey] = useState('');
+    const [authError, setAuthError] = useState(false);
+    const navigate = useNavigate();
 
     const PRIMARY_DARK = '#07294bff';
     const LIGHT_BLUE = '#1591cbff';
@@ -40,7 +17,7 @@ const HealthQuestionnaire = () => {
     const GREEN_BUTTON = '#00CC66';
     const GREEN_SHADOW = '#00994d';
 
-    const questions: QuizQuestion[] = [
+    const questions = [
         {
             title: 'Q1',
             question: 'How many liters of water do you drink daily?',
@@ -83,41 +60,19 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-    const calculateTotalScore = () => scores.reduce((sum, score) => sum + score, 0);
-
-    const sendQuizResultsEmail = async (totalScore: number) => {
-        if (!user?.email) {
-            console.log('No user email found, skipping email sending');
-            return;
-        }
-
-        const scorePercentage = Math.round((totalScore / (questions.length * 100)) * 100);
-
-        console.log('Sending email to:', user.email);
-        const templateParams = {
-            name: user?.name || 'User',
-            email: user.email,
-            title: user?.title || '',
-            message: `Your health assessment results are ready!\n\n` +
-                `Total Score: ${totalScore} (${scorePercentage}%)\n` +
-                `Questions Answered: 4/4\n\n` +
-                `Thank you for completing the assessment!`
-        };
-
-        try {
-            await emailjs.send(
-                'service_43k5omt',
-                'template_su223cy',
-                templateParams,
-                'TABZRK7DGS_KJI5Ox'
-            );
-            console.log('Quiz results email sent successfully');
-        } catch (error) {
-            console.error('Failed to send quiz results email:', error);
+    const handleExpertAccess = () => {
+        if (authKey === 'asiriadmin') {
+            setShowAuthPopup(false);
+            setAuthKey('');
+            setAuthError(false);
+            alert('Access granted! Navigating to Expert page...');
+            navigate('/expert');
+        } else {
+            setAuthError(true);
         }
     };
 
-    const handleOK = async () => {
+    const handleOK = () => {
         if (selectedOption === null) return;
 
         const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
@@ -125,22 +80,14 @@ const HealthQuestionnaire = () => {
 
         if (currentQuestion < questions.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
-            setSelectedOption(null);
+            setSelectedOption(0);
         } else {
             setShowResults(true);
-            setIsSubmitting(true);
-
-            const totalScore = newScores.reduce((sum, score) => sum + score, 0);
-
-            await sendQuizResultsEmail(totalScore);
-
-            setIsSubmitting(false);
-            setSubmissionCompleted(true);
         }
     };
 
     const maxScore = 400;
-    const totalScore = calculateTotalScore();
+    const totalScore = scores.reduce((sum, score) => sum + score, 0);
     const percentage = Math.round((totalScore / maxScore) * 100);
 
     const getHealthMessage = () => {
@@ -170,131 +117,78 @@ const HealthQuestionnaire = () => {
         };
     };
 
-    const ChevronRight = ({ size = 20, color = "white" }) => (
+    interface ChevronRightProps {
+        size?: number;
+        color?: string;
+    }
+
+    const ChevronRight = ({ size = 20, color = "white" }: ChevronRightProps) => (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
             <path d="m9 18 6-6-6-6"/>
         </svg>
     );
 
-    // Enhanced Logo Component with White Background
-    const Logo = ({ size = 'medium' }: { size?: Size }) => {
-        const sizes: Record<Size, { width: number; height: string }> = {
-            small: { width: 120, height: 'auto' },
-            medium: { width: 200, height: 'auto' },
-            large: { width: 260, height: 'auto' }
-        };
-
-        const { width, height } = sizes[size] || sizes.medium;
-
-        // If logo fails to load, show enhanced text version with white background
-        if (logoError) {
-            return (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: PRIMARY_DARK,
-                    fontWeight: 'bold',
-                    width: width,
-                    margin: '0 auto 20px auto',
-                    padding: '20px 0',
-                    background: 'white',
-                    borderRadius: '16px',
-                    boxShadow: '0 8px 25px rgba(7, 41, 75, 0.15)',
-                    border: '2px solid rgba(7, 41, 75, 0.1)'
-                }}>
-                    <div style={{
-                        fontSize: size === 'small' ? '20px' : size === 'large' ? '32px' : '28px',
-                        lineHeight: '1.1',
-                        textAlign: 'center',
-                        letterSpacing: '1.5px',
-                        background: 'linear-gradient(135deg, #07294b, #1591cb)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
-                    }}>
-                        ASIRI
-                    </div>
-                    <div style={{
-                        fontSize: size === 'small' ? '14px' : size === 'large' ? '20px' : '18px',
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        marginTop: '4px',
-                        background: 'linear-gradient(135deg, #1591cb, #57bef6)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
-                    }}>
-                        HEALTH
-                    </div>
-                    <div style={{
-                        fontSize: size === 'small' ? '10px' : size === 'large' ? '14px' : '12px',
-                        lineHeight: '1.2',
-                        textAlign: 'center',
-                        marginTop: '4px',
-                        fontWeight: 'normal',
-                        color: LIGHT_BLUE,
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        backgroundColor: 'rgba(21, 145, 203, 0.1)'
-                    }}>
-                        Lifescore
-                    </div>
-                </div>
-            );
-        }
-
-        return (
+    const Logo = () => (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: PRIMARY_DARK,
+            fontWeight: 'bold',
+            width: 200,
+            margin: '0 auto 20px auto',
+            padding: '20px 0',
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 8px 25px rgba(7, 41, 75, 0.15)',
+            border: '2px solid rgba(7, 41, 75, 0.1)'
+        }}>
             <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                margin: '0 auto 20px auto',
-                padding: '25px 0',
-                background: 'white',
-                borderRadius: '20px',
-                boxShadow: '0 10px 30px rgba(7, 41, 75, 0.2)',
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-                transition: 'all 0.3s ease'
+                fontSize: '28px',
+                lineHeight: '1.1',
+                textAlign: 'center',
+                letterSpacing: '1.5px',
+                background: 'linear-gradient(135deg, #07294b, #1591cb)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
             }}>
-                <img
-                    src={asiriLogo}
-                    alt="Asiri Health Lifescore"
-                    style={{
-                        width: width,
-                        height: height,
-                        objectFit: 'contain',
-                        transition: 'transform 0.3s ease'
-                    }}
-                    onError={() => setLogoError(true)}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                            parent.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
-                        }
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                            parent.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
-                        }
-                    }}
-                />
+                ASIRI
             </div>
-        );
-    };
+            <div style={{
+                fontSize: '18px',
+                lineHeight: '1.2',
+                textAlign: 'center',
+                marginTop: '4px',
+                background: 'linear-gradient(135deg, #1591cb, #57bef6)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+            }}>
+                HEALTH
+            </div>
+            <div style={{
+                fontSize: '12px',
+                lineHeight: '1.2',
+                textAlign: 'center',
+                marginTop: '4px',
+                fontWeight: 'normal',
+                color: LIGHT_BLUE,
+                padding: '4px 12px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(21, 145, 203, 0.1)'
+            }}>
+                Lifescore
+            </div>
+        </div>
+    );
 
-
-    const DonutChart = ({
-                            percentage,
-                            size = 120,
-                            strokeWidth = 12,
-                        }: {
+    interface DonutChartProps {
         percentage: number;
         size?: number;
         strokeWidth?: number;
-    }) => {
+    }
+
+    const DonutChart = ({ percentage, size = 120, strokeWidth = 12 }: DonutChartProps) => {
         const radius = (size - strokeWidth) / 2;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference * (1 - percentage / 100);
@@ -317,7 +211,6 @@ const HealthQuestionnaire = () => {
                             <stop offset="100%" stopColor={endColor} />
                         </linearGradient>
                     </defs>
-
                     <circle
                         stroke="#e6e6e6"
                         fill="none"
@@ -326,7 +219,6 @@ const HealthQuestionnaire = () => {
                         r={radius}
                         strokeWidth={strokeWidth}
                     />
-
                     <circle
                         stroke="url(#chartGradient)"
                         fill="none"
@@ -339,7 +231,6 @@ const HealthQuestionnaire = () => {
                         strokeLinecap="round"
                         transform={`rotate(-90 ${size / 2} ${size / 2})`}
                     />
-
                     <text
                         x={size / 2}
                         y={size / 2 + 6}
@@ -366,15 +257,7 @@ const HealthQuestionnaire = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '15px',
-                margin: '0',
                 background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                right: '0',
-                bottom: '0',
-                overflow: 'auto',
-                boxSizing: 'border-box'
             }}>
                 <div style={{
                     width: '100%',
@@ -386,12 +269,9 @@ const HealthQuestionnaire = () => {
                     boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                     textAlign: 'center'
                 }}>
-                    {/* Logo */}
                     <div style={{ marginBottom: '10px' }}>
-                        <Logo size="small" />
+                        <Logo />
                     </div>
-
-                    {/* Header */}
 
                     <div style={{ marginBottom: '15px' }}>
                         <h1 style={{
@@ -402,13 +282,6 @@ const HealthQuestionnaire = () => {
                         }}>
                             Health Score
                         </h1>
-                        <p style={{
-                            fontSize: '14px',
-                            color: '#6B7280',
-                            margin: '0'
-                        }}>
-                            {user ? `${user.title} ${user.name}` : 'User'}
-                        </p>
                     </div>
 
                     <DonutChart percentage={percentage} size={100} strokeWidth={10} />
@@ -436,10 +309,7 @@ const HealthQuestionnaire = () => {
                         backgroundColor: `${GREEN_BUTTON}15`,
                         borderRadius: '10px'
                     }}>
-                        <p style={{
-                            fontSize: '32px',
-                            margin: '0 0 6px 0'
-                        }}>
+                        <p style={{ fontSize: '32px', margin: '0 0 6px 0' }}>
                             {message.emoji}
                         </p>
                         <p style={{
@@ -477,10 +347,7 @@ const HealthQuestionnaire = () => {
                                 borderRadius: '6px',
                                 fontSize: '12px'
                             }}>
-                                <span style={{
-                                    fontWeight: '500',
-                                    color: '#374151'
-                                }}>
+                                <span style={{ fontWeight: '500', color: '#374151' }}>
                                     {q.title}
                                 </span>
                                 <span style={{
@@ -500,67 +367,17 @@ const HealthQuestionnaire = () => {
                         borderRadius: '10px',
                         color: 'white'
                     }}>
-                        <p style={{
-                            fontSize: '12px',
-                            margin: '0 0 4px 0',
-                            opacity: 0.9
-                        }}>
+                        <p style={{ fontSize: '12px', margin: '0 0 4px 0', opacity: 0.9 }}>
                             Total Score
                         </p>
-                        <p style={{
-                            fontSize: '24px',
-                            fontWeight: '800',
-                            margin: '0'
-                        }}>
+                        <p style={{ fontSize: '24px', fontWeight: '800', margin: '0' }}>
                             {totalScore}<span style={{ fontSize: '14px', opacity: 0.8 }}>/{maxScore}</span>
                         </p>
                     </div>
 
-                    <div style={{
-                        margin: '12px 0',
-                        padding: '10px',
-                        backgroundColor: submissionCompleted ? '#e8f5e8' : '#fff3cd',
-                        borderRadius: '8px',
-                        border: `1px solid ${submissionCompleted ? '#d4edda' : '#ffeaa7'}`
-                    }}>
-                        <p style={{
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: submissionCompleted ? '#155724' : '#856404',
-                            margin: '0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                        }}>
-                            {isSubmitting ? (
-                                <>
-                                    <span>📨 Sending results...</span>
-                                </>
-                            ) : submissionCompleted ? (
-                                <>
-                                    <span>✅ Results submitted successfully!</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>⏳ Preparing results...</span>
-                                </>
-                            )}
-                        </p>
-                        {user?.email && submissionCompleted && (
-                            <p style={{
-                                fontSize: '10px',
-                                color: '#155724',
-                                margin: '4px 0 0 0'
-                            }}>
-                                Email sent to: {user.email}
-                            </p>
-                        )}
-                    </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
-                            onClick={() => navigate('/expert')}
+                            onClick={() => setShowAuthPopup(true)}
                             style={{
                                 width: '100%',
                                 padding: '12px',
@@ -586,6 +403,140 @@ const HealthQuestionnaire = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* Auth Popup */}
+                {showAuthPopup && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '20px'
+                    }}>
+                        <div style={{
+                            backgroundColor: 'white',
+                            borderRadius: '16px',
+                            padding: '24px',
+                            maxWidth: '350px',
+                            width: '100%',
+                            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)'
+                        }}>
+                            <h3 style={{
+                                fontSize: '18px',
+                                fontWeight: '700',
+                                color: PRIMARY_DARK,
+                                margin: '0 0 8px 0',
+                                textAlign: 'center'
+                            }}>
+                                Access Required
+                            </h3>
+                            <p style={{
+                                fontSize: '13px',
+                                color: '#6B7280',
+                                margin: '0 0 20px 0',
+                                textAlign: 'center'
+                            }}>
+                                Enter authorization key to continue
+                            </p>
+
+                            <input
+                                type="password"
+                                value={authKey}
+                                onChange={(e) => {
+                                    setAuthKey(e.target.value);
+                                    setAuthError(false);
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleExpertAccess();
+                                    }
+                                }}
+                                placeholder="Enter key"
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    border: `2px solid ${authError ? '#ef4444' : '#e5e7eb'}`,
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    boxSizing: 'border-box',
+                                    marginBottom: '12px'
+                                }}
+                            />
+
+                            {authError && (
+                                <p style={{
+                                    fontSize: '12px',
+                                    color: '#ef4444',
+                                    margin: '0 0 12px 0',
+                                    textAlign: 'center'
+                                }}>
+                                    ❌ Incorrect key. Please try again.
+                                </p>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                                <button
+                                    onClick={() => {
+                                        setShowAuthPopup(false);
+                                        setAuthKey('');
+                                        setAuthError(false);
+                                    }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: '2px solid #e5e7eb',
+                                        background: 'white',
+                                        color: '#6B7280',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'white';
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleExpertAccess}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: LIGHT_BLUE,
+                                        color: 'white',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.backgroundColor = PRIMARY_DARK;
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.backgroundColor = LIGHT_BLUE;
+                                    }}
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -599,25 +550,15 @@ const HealthQuestionnaire = () => {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '15px',
-            margin: '0',
             background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            right: '0',
-            bottom: '0',
-            overflow: 'auto',
-            boxSizing: 'border-box'
         }}>
             <div style={{
                 position: 'relative',
                 width: '100%',
                 maxWidth: '400px'
             }}>
-                {/* Logo */}
-                <Logo size="medium" />
+                <Logo />
 
-                {/* Progress indicator */}
                 <div style={{
                     display: 'flex',
                     justifyContent: 'center',
@@ -707,21 +648,19 @@ const HealthQuestionnaire = () => {
                                     }
                                 }}
                             >
-                                <div
-                                    style={{
-                                        width: '18px',
-                                        height: '18px',
-                                        borderRadius: '50%',
-                                        border: '2px solid',
-                                        borderColor: selectedOption === index ? PRIMARY_DARK : 'white',
-                                        backgroundColor: selectedOption === index ? PRIMARY_DARK : 'transparent',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginRight: '10px',
-                                        flexShrink: 0
-                                    }}
-                                >
+                                <div style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    border: '2px solid',
+                                    borderColor: selectedOption === index ? PRIMARY_DARK : 'white',
+                                    backgroundColor: selectedOption === index ? PRIMARY_DARK : 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: '10px',
+                                    flexShrink: 0
+                                }}>
                                     {selectedOption === index && (
                                         <div style={{
                                             width: '6px',
@@ -731,14 +670,12 @@ const HealthQuestionnaire = () => {
                                         }} />
                                     )}
                                 </div>
-                                <span
-                                    style={{
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        textAlign: 'left',
-                                        color: selectedOption === index ? PRIMARY_DARK : 'white'
-                                    }}
-                                >
+                                <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    textAlign: 'left',
+                                    color: selectedOption === index ? PRIMARY_DARK : 'white'
+                                }}>
                                     {option.label}
                                 </span>
                             </button>
@@ -747,6 +684,7 @@ const HealthQuestionnaire = () => {
 
                     <button
                         onClick={handleOK}
+                        disabled={selectedOption === null}
                         style={{
                             padding: '12px 40px',
                             borderRadius: '20px',
@@ -756,18 +694,21 @@ const HealthQuestionnaire = () => {
                             textTransform: 'uppercase',
                             boxShadow: '0 8px 16px rgba(0, 0, 0, 0.15)',
                             transition: 'transform 0.2s',
-                            backgroundColor: GREEN_BUTTON,
-                            borderBottom: `3px solid ${GREEN_SHADOW}`,
+                            backgroundColor: selectedOption === null ? '#ccc' : GREEN_BUTTON,
+                            borderBottom: `3px solid ${selectedOption === null ? '#999' : GREEN_SHADOW}`,
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: selectedOption === null ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '8px',
-                            margin: '0 auto'
+                            margin: '0 auto',
+                            opacity: selectedOption === null ? 0.6 : 1
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.05)';
+                            if (selectedOption !== null) {
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                            }
                         }}
                         onMouseOut={(e) => {
                             e.currentTarget.style.transform = 'scale(1)';
