@@ -55,12 +55,10 @@ const HealthCardPage = () => {
 
     const handleSendEmail = () => {
         if (!user.email) {
-            alert('User email not found. Please log in again.');
             return;
         }
 
         if (!rstScore || !bpScore || !bmiScore) {
-            alert('Please fill in all score fields');
             return;
         }
 
@@ -80,20 +78,20 @@ const HealthCardPage = () => {
         emailjs
             .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
             .then(() => {
-                alert('Email sent successfully!');
+
                 setRstScore('');
                 setBpScore('');
                 setBmiScore('');
             })
             .catch((error) => {
                 console.error('Email sending failed:', error);
-                alert('Failed to send email. Check console for details.');
+
             });
     };
 
     const sendToWhatsApp = () => {
         if (!bmiScore || !rstScore || !bpScore) {
-            alert('Please fill in all health scores');
+
             return;
         }
 

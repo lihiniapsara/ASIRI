@@ -167,7 +167,7 @@ const Welcome = () => {
 
             navigate("/quiz", { state: { user: newUser } }); // Go to Quiz page
         } catch (err) {
-            alert('Registration failed! Check console.');
+
             console.error(err);
         }
     };
