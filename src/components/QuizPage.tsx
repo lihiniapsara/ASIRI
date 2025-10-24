@@ -1,21 +1,32 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import emailjs from "@emailjs/browser";
-=======
-import { useState } from 'react';
-import {useNavigate} from "react-router-dom";
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
 
-import emailjs from "@emailjs/browser";
+// Initialize EmailJS
+try {
+    emailjs.init('TABZRK7DGS_KJI5Ox');
+} catch (error) {
+    console.error('Failed to initialize EmailJS:', error);
+}
 
+import asiriLogo from '../assets/asiri-logo.png';
+
+interface User {
+    title: string;
+    name: string;
+    phone: string;
+    email: string;
+}
+
+type Size = 'small' | 'medium' | 'large';
 
 const HealthQuestionnaire = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [selectedOption, setSelectedOption] = useState<number>(0);
+    const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const [scores, setScores] = useState<number[]>([]);
     const [showResults, setShowResults] = useState(false);
-<<<<<<< HEAD
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionCompleted, setSubmissionCompleted] = useState(false);
     const [logoError, setLogoError] = useState(false);
@@ -40,12 +51,6 @@ const HealthQuestionnaire = () => {
     }, []);
 
     const user: User | null = location.state?.user || null;
-=======
-    const [showAuthPopup, setShowAuthPopup] = useState(false);
-    const [authKey, setAuthKey] = useState('');
-    const [authError, setAuthError] = useState(false);
-    const navigate = useNavigate();
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
 
     const PRIMARY_DARK = '#07294bff';
     const LIGHT_BLUE = '#1591cbff';
@@ -96,45 +101,9 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-
-    const handleOK = () => {
-        if (selectedOption === null) return;
-
-        const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
-        setScores(newScores);
-
-        if (currentQuestion < questions.length - 1) {
-            setCurrentQuestion(currentQuestion + 1);
-            setSelectedOption(0);
-        } else {
-            setShowResults(true);
-            //sendQuizResultsEmail();
-        }
-    };
-
-
-
-
-    const maxScore = 400;
-    const totalScore = scores.reduce((sum, score) => sum + score, 0);
-    const percentage = Math.round((totalScore / maxScore) * 100);
-
-    const handleExpertAccess = () => {
-        if (authKey === 'asiriadmin') {
-            setShowAuthPopup(false);
-            setAuthKey('');
-            setAuthError(false);
-            sendQuizResultsEmail(totalScore)
-            alert('Access granted! Navigating to Expert page...');
-            navigate('/expert');
-        } else {
-            setAuthError(true);
-        }
-    };
-
+    const calculateTotalScore = () => scores.reduce((sum, score) => sum + score, 0);
 
     const sendQuizResultsEmail = async (totalScore: number) => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
         if (!user?.email) {
             console.log('No user email found, skipping email sending');
             return;
@@ -155,10 +124,10 @@ const HealthQuestionnaire = () => {
 
         try {
             await emailjs.send(
-                'service_g9ud6tf',
-                'template_10anx1u',
+                'service_43k5omt',
+                'template_su223cy',
                 templateParams,
-                'GT67rJ-Rr-55GEzmS'
+                'TABZRK7DGS_KJI5Ox'
             );
             console.log('Quiz results email sent successfully');
         } catch (error) {
@@ -166,7 +135,6 @@ const HealthQuestionnaire = () => {
         }
     };
 
-<<<<<<< HEAD
     const handleOK = async () => {
         if (selectedOption === null) return;
 
@@ -203,12 +171,8 @@ const HealthQuestionnaire = () => {
     const maxScore = 400;
     const totalScore = calculateTotalScore();
     const percentage = Math.round((totalScore / maxScore) * 100);
-=======
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
 
     const getHealthMessage = () => {
-         console.log("kkkk")
-
         if (percentage >= 80) return {
             text: 'Excellent! Keep it up!',
             emoji: '🌟',
@@ -246,7 +210,6 @@ const HealthQuestionnaire = () => {
         </svg>
     );
 
-<<<<<<< HEAD
     // Enhanced Logo Component with Image and Fallback
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
@@ -326,61 +289,35 @@ const HealthQuestionnaire = () => {
                 boxShadow: '0 10px 30px rgba(7, 41, 75, 0.2)',
                 border: '2px solid rgba(255, 255, 255, 0.8)',
                 transition: 'all 0.3s ease'
-=======
-    const Logo = () => (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: PRIMARY_DARK,
-            fontWeight: 'bold',
-            width: 200,
-            margin: '0 auto 20px auto',
-            padding: '20px 0',
-            background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 8px 25px rgba(7, 41, 75, 0.15)',
-            border: '2px solid rgba(7, 41, 75, 0.1)'
-        }}>
-            <div style={{
-                fontSize: '28px',
-                lineHeight: '1.1',
-                textAlign: 'center',
-                letterSpacing: '1.5px',
-                background: 'linear-gradient(135deg, #07294b, #1591cb)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
             }}>
-                ASIRI
+                <img
+                    src={asiriLogo}
+                    alt="Asiri Health Lifescore"
+                    style={{
+                        width: width,
+                        height: height,
+                        objectFit: 'contain',
+                        transition: 'transform 0.3s ease'
+                    }}
+                    onError={() => setLogoError(true)}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                            parent.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
+                        }
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                            parent.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
+                        }
+                    }}
+                />
             </div>
-            <div style={{
-                fontSize: '18px',
-                lineHeight: '1.2',
-                textAlign: 'center',
-                marginTop: '4px',
-                background: 'linear-gradient(135deg, #1591cb, #57bef6)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-            }}>
-                HEALTH
-            </div>
-            <div style={{
-                fontSize: '12px',
-                lineHeight: '1.2',
-                textAlign: 'center',
-                marginTop: '4px',
-                fontWeight: 'normal',
-                color: LIGHT_BLUE,
-                padding: '4px 12px',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(21, 145, 203, 0.1)'
-            }}>
-                Lifescore
-            </div>
-        </div>
-    );
+        );
+    };
 
     interface DonutChartProps {
         percentage: number;
@@ -456,12 +393,8 @@ const HealthQuestionnaire = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-<<<<<<< HEAD
                 padding: '0', // Remove all padding
                 margin: '0', // Remove all margin
-=======
-                padding: '15px',
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
                 background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
             }}>
                 <div style={{
@@ -475,18 +408,12 @@ const HealthQuestionnaire = () => {
                     textAlign: 'center',
                     margin: '0 auto' // Center the content
                 }}>
-<<<<<<< HEAD
                     {/* Logo with Image */}
-=======
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
                     <div style={{ marginBottom: '10px' }}>
-                        <Logo />
+                        <Logo size="small" />
                     </div>
 
-<<<<<<< HEAD
                     {/* Header with User Information */}
-=======
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
                     <div style={{ marginBottom: '15px' }}>
                         <h1 style={{
                             fontSize: '24px',
@@ -496,6 +423,13 @@ const HealthQuestionnaire = () => {
                         }}>
                             Health Score
                         </h1>
+                        <p style={{
+                            fontSize: '14px',
+                            color: '#6B7280',
+                            margin: '0'
+                        }}>
+                            {user ? `${user.title} ${user.name}` : 'User'}
+                        </p>
                     </div>
 
                     <DonutChart percentage={percentage} size={100} strokeWidth={10} />
@@ -589,7 +523,6 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
-<<<<<<< HEAD
                     {/* Submission Status */}
                     <div style={{
                         margin: '12px 0',
@@ -633,8 +566,6 @@ const HealthQuestionnaire = () => {
                         )}
                     </div>
 
-=======
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
                             onClick={() => setShowAuthPopup(true)}
@@ -809,12 +740,8 @@ const HealthQuestionnaire = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-<<<<<<< HEAD
             padding: '0', // Remove all padding
             margin: '0', // Remove all margin
-=======
-            padding: '15px',
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
             background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
         }}>
             <div style={{
@@ -824,10 +751,7 @@ const HealthQuestionnaire = () => {
                 padding: '0 15px', // Add horizontal padding only to inner container
                 boxSizing: 'border-box'
             }}>
-<<<<<<< HEAD
                 {/* Logo with Image */}
-=======
->>>>>>> 161b4ad91d0bc202642fc64c240e88385be42a45
                 <Logo />
 
                 <div style={{
