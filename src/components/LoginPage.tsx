@@ -143,12 +143,29 @@ const Welcome = () => {
             return;
         }
 
-        const newUser: User = { title: selectedTitle, name: name.trim(), phone: phone.trim(), email: email.trim() };
+        const newUser: User = {
+            title: selectedTitle,
+            name: name.trim(),
+            phone: phone.trim(),
+            email: email.trim()
+        };
 
         try {
             await registerUser(newUser);
+
+            // ✅ LOCAL STORAGE එකට SAVE කරන්න
+            const userData = {
+                title: selectedTitle,
+                name: name.trim(),
+                timestamp: Date.now()
+            };
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+
+            // ✅ STORAGE EVENT TRIGGER කරන්න
+            window.dispatchEvent(new Event('storage'));
+
             alert('Registration successful!');
-            navigate("/quiz",{state:{user:newUser}}); // Go to Quiz page
+            navigate("/quiz", { state: { user: newUser } }); // Go to Quiz page
         } catch (err) {
             alert('Registration failed! Check console.');
             console.error(err);
@@ -196,7 +213,7 @@ const Welcome = () => {
                 <img
                     src={Logo}
                     alt="Asiri Logo"
-                    style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '-5px' }}
+                    style={{ width: '300px', height: '190px', objectFit: 'contain', marginBottom: '-5px' }}
                 />
                 <h1 style={{
                     fontSize: '24px',
