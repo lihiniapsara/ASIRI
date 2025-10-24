@@ -19,6 +19,8 @@ interface User {
     email: string;
 }
 
+type Size = 'small' | 'medium' | 'large';
+
 const HealthQuestionnaire = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -174,8 +176,8 @@ const HealthQuestionnaire = () => {
     );
 
     // Enhanced Logo Component with White Background
-    const Logo = ({ size = 'medium' }) => {
-        const sizes = {
+    const Logo = ({ size = 'medium' }: { size?: Size }) => {
+        const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 120, height: 'auto' },
             medium: { width: 200, height: 'auto' },
             large: { width: 260, height: 'auto' }
@@ -265,11 +267,17 @@ const HealthQuestionnaire = () => {
                     onError={() => setLogoError(true)}
                     onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'scale(1.05)';
-                        e.currentTarget.parentElement.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                            parent.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
+                        }
                     }}
                     onMouseOut={(e) => {
                         e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.parentElement.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                            parent.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
+                        }
                     }}
                 />
             </div>
