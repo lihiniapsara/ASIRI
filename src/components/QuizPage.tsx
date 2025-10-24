@@ -175,6 +175,7 @@ const HealthQuestionnaire = () => {
         }
     };
 
+
     const getHealthMessage = () => {
         if (percentage >= 80) return {
             text: 'Excellent! Keep it up!',
