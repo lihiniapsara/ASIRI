@@ -93,6 +93,7 @@ const HealthQuestionnaire = () => {
 
         const scorePercentage = Math.round((totalScore / (questions.length * 100)) * 100);
 
+        console.log('Sending email to:', user.email);
         const templateParams = {
             name: user?.name || 'User',
             email: user.email,
