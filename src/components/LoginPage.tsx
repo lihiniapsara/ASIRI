@@ -1,4 +1,4 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import Logo from '../assets/asiri-logo.png';
 import { registerUser } from '../services/userService';
@@ -15,18 +15,135 @@ const Welcome = () => {
     const [phoneFocused, setPhoneFocused] = useState(false);
     const [emailFocused, setEmailFocused] = useState(false);
 
+    // Validation states
+    const [errors, setErrors] = useState({
+        name: '',
+        phone: '',
+        email: ''
+    });
+    const [touched, setTouched] = useState({
+        name: false,
+        phone: false,
+        email: false
+    });
+
     // Asiri Health colors
     const PRIMARY_BLUE = '#0071bc';
     const LIGHT_BLUE = '#2ea7e0';
     const VERY_LIGHT_BLUE = '#b3e5ff';
+    const ERROR_RED = '#dc3545';
+
+    // Validation functions
+    const validateName = (name: string) => {
+        if (!name.trim()) {
+            return 'Name is required';
+        }
+        if (name.trim().length < 2) {
+            return 'Name must be at least 2 characters long';
+        }
+        if (!/^[a-zA-Z\s]+$/.test(name)) {
+            return 'Name can only contain letters and spaces';
+        }
+        return '';
+    };
+
+    const validatePhone = (phone: string) => {
+        if (!phone.trim()) {
+            return 'Phone number is required';
+        }
+        // Sri Lankan phone number format: 07XXXXXXXX or +947XXXXXXXX
+        const phoneRegex = /^(?:\+94|0)?7[0-9]{8}$/;
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+            return 'Please enter a valid Sri Lankan phone number';
+        }
+        return '';
+    };
+
+    const validateEmail = (email: string) => {
+        if (!email.trim()) {
+            return 'Email is required';
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return 'Please enter a valid email address';
+        }
+        return '';
+    };
+
+    // Validate all fields
+    const validateForm = () => {
+        const nameError = validateName(name);
+        const phoneError = validatePhone(phone);
+        const emailError = validateEmail(email);
+
+        setErrors({
+            name: nameError,
+            phone: phoneError,
+            email: emailError
+        });
+
+        // Mark all fields as touched to show errors
+        setTouched({
+            name: true,
+            phone: true,
+            email: true
+        });
+
+        return !nameError && !phoneError && !emailError;
+    };
+
+    // Handle field blur events
+    const handleNameBlur = () => {
+        setNameFocused(false);
+        setTouched(prev => ({ ...prev, name: true }));
+        setErrors(prev => ({ ...prev, name: validateName(name) }));
+    };
+
+    const handlePhoneBlur = () => {
+        setPhoneFocused(false);
+        setTouched(prev => ({ ...prev, phone: true }));
+        setErrors(prev => ({ ...prev, phone: validatePhone(phone) }));
+    };
+
+    const handleEmailBlur = () => {
+        setEmailFocused(false);
+        setTouched(prev => ({ ...prev, email: true }));
+        setErrors(prev => ({ ...prev, email: validateEmail(email) }));
+    };
+
+    // Real-time validation on change (optional)
+    const handleNameChange = (value: string) => {
+        setName(value);
+        if (touched.name) {
+            setErrors(prev => ({ ...prev, name: validateName(value) }));
+        }
+    };
+
+    const handlePhoneChange = (value: string) => {
+        setPhone(value);
+        if (touched.phone) {
+            setErrors(prev => ({ ...prev, phone: validatePhone(value) }));
+        }
+    };
+
+    const handleEmailChange = (value: string) => {
+        setEmail(value);
+        if (touched.email) {
+            setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+        }
+    };
 
     const handleSubmit = async () => {
-        if (!name.trim() || !phone.trim() || !email.trim()) {
-            alert('Please enter your name, phone number and email.');
+        if (!validateForm()) {
+            // Scroll to first error
+            const firstErrorField = document.querySelector('[data-has-error="true"]');
+            if (firstErrorField) {
+                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
-        const newUser: User = { title: selectedTitle, name, phone, email };
+        const newUser: User = { title: selectedTitle, name: name.trim(), phone: phone.trim(), email: email.trim() };
 
         try {
             await registerUser(newUser);
@@ -34,7 +151,14 @@ const Welcome = () => {
             navigate("/quiz",{state:{user:newUser}}); // Go to Quiz page
         } catch (err) {
             alert('Registration failed! Check console.');
+            console.error(err);
         }
+    };
+
+    // Helper function to get input border color
+    const getInputBorderColor = (focused: boolean, hasError: boolean, error: string) => {
+        if (hasError && error) return ERROR_RED;
+        return focused ? PRIMARY_BLUE : 'transparent';
     };
 
     return (
@@ -144,21 +268,31 @@ const Welcome = () => {
                 </div>
 
                 {/* Name Input */}
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>Name</label>
+                <div
+                    style={{ marginBottom: '16px' }}
+                    data-has-error={touched.name && !!errors.name}
+                >
+                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>
+                        Name
+                        {touched.name && errors.name && (
+                            <span style={{ color: ERROR_RED, fontSize: '12px', marginLeft: '8px' }}>
+                                {errors.name}
+                            </span>
+                        )}
+                    </label>
                     <input
                         type="text"
                         placeholder="Enter your name"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => handleNameChange(e.target.value)}
                         onFocus={() => setNameFocused(true)}
-                        onBlur={() => setNameFocused(false)}
+                        onBlur={handleNameBlur}
                         style={{
                             width: '100%',
                             backgroundColor: 'white',
                             borderRadius: '8px',
                             padding: '10px 10px',
-                            border: `2px solid ${nameFocused ? PRIMARY_BLUE : 'transparent'}`,
+                            border: `2px solid ${getInputBorderColor(nameFocused, touched.name, errors.name)}`,
                             fontSize: '15px',
                             outline: 'none',
                             boxSizing: 'border-box'
@@ -167,21 +301,31 @@ const Welcome = () => {
                 </div>
 
                 {/* Phone Input */}
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>Phone No</label>
+                <div
+                    style={{ marginBottom: '16px' }}
+                    data-has-error={touched.phone && !!errors.phone}
+                >
+                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>
+                        Phone No
+                        {touched.phone && errors.phone && (
+                            <span style={{ color: ERROR_RED, fontSize: '12px', marginLeft: '8px' }}>
+                                {errors.phone}
+                            </span>
+                        )}
+                    </label>
                     <input
                         type="tel"
-                        placeholder="Enter your phone number"
+                        placeholder="Enter your phone number (07XXXXXXXX)"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
                         onFocus={() => setPhoneFocused(true)}
-                        onBlur={() => setPhoneFocused(false)}
+                        onBlur={handlePhoneBlur}
                         style={{
                             width: '100%',
                             backgroundColor: 'white',
                             borderRadius: '8px',
                             padding: '10px 10px',
-                            border: `2px solid ${phoneFocused ? PRIMARY_BLUE : 'transparent'}`,
+                            border: `2px solid ${getInputBorderColor(phoneFocused, touched.phone, errors.phone)}`,
                             fontSize: '15px',
                             outline: 'none',
                             boxSizing: 'border-box'
@@ -190,21 +334,31 @@ const Welcome = () => {
                 </div>
 
                 {/* Email Input */}
-                <div style={{ marginBottom: '24px' }}>
-                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>Email</label>
+                <div
+                    style={{ marginBottom: '24px' }}
+                    data-has-error={touched.email && !!errors.email}
+                >
+                    <label style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'block' }}>
+                        Email
+                        {touched.email && errors.email && (
+                            <span style={{ color: ERROR_RED, fontSize: '12px', marginLeft: '8px' }}>
+                                {errors.email}
+                            </span>
+                        )}
+                    </label>
                     <input
                         type="email"
                         placeholder="Enter your email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         onFocus={() => setEmailFocused(true)}
-                        onBlur={() => setEmailFocused(false)}
+                        onBlur={handleEmailBlur}
                         style={{
                             width: '100%',
                             backgroundColor: 'white',
                             borderRadius: '8px',
                             padding: '10px 10px',
-                            border: `2px solid ${emailFocused ? PRIMARY_BLUE : 'transparent'}`,
+                            border: `2px solid ${getInputBorderColor(emailFocused, touched.email, errors.email)}`,
                             fontSize: '15px',
                             outline: 'none',
                             boxSizing: 'border-box'

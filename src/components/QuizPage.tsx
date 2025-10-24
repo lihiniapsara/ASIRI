@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { submitQuiz } from '../services/quizService';
-import type {QuizQuestion, QuizResult} from "../types/Quiz.ts";
+import type {QuizQuestion} from "../types/Quiz.ts";
 
 interface User {
     title: string;
@@ -168,7 +168,17 @@ const HealthQuestionnaire = () => {
     );
 
     // Compact Donut Chart
-    const DonutChart = ({ percentage, size = 120, strokeWidth = 12 }) => {
+    const DonutChart = ({
+                            percentage,
+                            size = 120,
+                            strokeWidth = 12,
+                        }: {
+        percentage: number;
+        size?: number;
+        strokeWidth?: number;
+    }) => {
+
+        //const DonutChart = ({percentage, size = 120, strokeWidth = 12 }) => {
         const radius = (size - strokeWidth) / 2;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference * (1 - percentage / 100);
@@ -435,7 +445,7 @@ const HealthQuestionnaire = () => {
                     {/* Single Action Button */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
-                            onClick={() => navigate('/experts')}
+                            onClick={() => navigate('/expert')}
                             style={{
                                 width: '100%',
                                 padding: '12px',
