@@ -1,56 +1,59 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 
-// Initialize EmailJS
+// Initialize EmailJS - Using the credentials from 2nd code
 try {
-    emailjs.init('TABZRK7DGS_KJI5Ox');
+    emailjs.init('GT67rJ-Rr-55GEzmS'); // Using public key from 2nd code
 } catch (error) {
     console.error('Failed to initialize EmailJS:', error);
 }
 
+// Add your logo import - adjust the path according to your project structure
 import asiriLogo from '../assets/asiri-logo.png';
 
-interface User {
-    title: string;
-    name: string;
-    phone: string;
-    email: string;
-}
-
-type Size = 'small' | 'medium' | 'large';
-
 const HealthQuestionnaire = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const [scores, setScores] = useState<number[]>([]);
     const [showResults, setShowResults] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submissionCompleted, setSubmissionCompleted] = useState(false);
-    const [logoError, setLogoError] = useState(false);
     const [showAuthPopup, setShowAuthPopup] = useState(false);
     const [authKey, setAuthKey] = useState('');
     const [authError, setAuthError] = useState(false);
+    const [logoError, setLogoError] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submissionCompleted, setSubmissionCompleted] = useState(false);
+    const navigate = useNavigate();
 
-    // Remove auto-applied padding from main element when component mounts
+    // Remove auto-applied padding from main element
     useEffect(() => {
         const main = document.querySelector('main');
         if (main) {
-            const originalPaddingTop = main.style.paddingTop;
-            main.style.paddingTop = '0px';
-            main.style.padding = '0px'; // Ensure all padding is removed if needed
+            // Store original styles
+            const originalPadding = main.style.padding;
+            const originalMargin = main.style.margin;
+
+            // Remove all padding and margin
+            main.style.padding = '0';
+            main.style.margin = '0';
+
+            // Also remove from body and html for complete control
+            document.body.style.padding = '0';
+            document.body.style.margin = '0';
+            document.documentElement.style.padding = '0';
+            document.documentElement.style.margin = '0';
 
             return () => {
-                main.style.paddingTop = originalPaddingTop;
-                // Optionally restore full padding if needed
-                // main.style.padding = originalPadding;
+                // Restore original styles when component unmounts
+                main.style.padding = originalPadding;
+                main.style.margin = originalMargin;
+                document.body.style.padding = '';
+                document.body.style.margin = '';
+                document.documentElement.style.padding = '';
+                document.documentElement.style.margin = '';
             };
         }
     }, []);
-
-    const user: User | null = location.state?.user || null;
 
     const PRIMARY_DARK = '#07294bff';
     const LIGHT_BLUE = '#1591cbff';
@@ -101,9 +104,30 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-    const calculateTotalScore = () => scores.reduce((sum, score) => sum + score, 0);
+    const handleOK = async () => {
+        if (selectedOption === null) return;
 
+        const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
+        setScores(newScores);
+
+        if (currentQuestion < questions.length - 1) {
+            setCurrentQuestion(currentQuestion + 1);
+            setSelectedOption(null);
+        } else {
+            setShowResults(true);
+            setIsSubmitting(true);
+
+            const totalScore = newScores.reduce((sum, score) => sum + score, 0);
+            await sendQuizResultsEmail(totalScore);
+
+            setIsSubmitting(false);
+            setSubmissionCompleted(true);
+        }
+    };
+
+    // Email sending function from 2nd code
     const sendQuizResultsEmail = async (totalScore: number) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
         if (!user?.email) {
             console.log('No user email found, skipping email sending');
             return;
@@ -124,10 +148,10 @@ const HealthQuestionnaire = () => {
 
         try {
             await emailjs.send(
-                'service_43k5omt',
-                'template_su223cy',
+                'service_g9ud6tf',
+                'template_10anx1u',
                 templateParams,
-                'TABZRK7DGS_KJI5Ox'
+                'GT67rJ-Rr-55GEzmS'
             );
             console.log('Quiz results email sent successfully');
         } catch (error) {
@@ -135,42 +159,21 @@ const HealthQuestionnaire = () => {
         }
     };
 
-    const handleOK = async () => {
-        if (selectedOption === null) return;
-
-        const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
-        setScores(newScores);
-
-        if (currentQuestion < questions.length - 1) {
-            setCurrentQuestion(currentQuestion + 1);
-            setSelectedOption(null);
-        } else {
-            setShowResults(true);
-            setIsSubmitting(true);
-
-            const totalScore = newScores.reduce((sum, score) => sum + score, 0);
-
-            await sendQuizResultsEmail(totalScore);
-
-            setIsSubmitting(false);
-            setSubmissionCompleted(true);
-        }
-    };
+    const maxScore = 400;
+    const totalScore = scores.reduce((sum, score) => sum + score, 0);
+    const percentage = Math.round((totalScore / maxScore) * 100);
 
     const handleExpertAccess = () => {
         if (authKey === 'asiriadmin') {
             setShowAuthPopup(false);
             setAuthKey('');
             setAuthError(false);
+            sendQuizResultsEmail(totalScore);
             navigate('/expert');
         } else {
             setAuthError(true);
         }
     };
-
-    const maxScore = 400;
-    const totalScore = calculateTotalScore();
-    const percentage = Math.round((totalScore / maxScore) * 100);
 
     const getHealthMessage = () => {
         if (percentage >= 80) return {
@@ -210,7 +213,8 @@ const HealthQuestionnaire = () => {
         </svg>
     );
 
-    // Enhanced Logo Component with Image and Fallback
+    type Size = 'small' | 'medium' | 'large';
+
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 120, height: 'auto' },
@@ -386,6 +390,7 @@ const HealthQuestionnaire = () => {
 
     if (showResults) {
         const message = getHealthMessage();
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
 
         return (
             <div style={{
@@ -393,8 +398,8 @@ const HealthQuestionnaire = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0', // Remove all padding
-                margin: '0', // Remove all margin
+                padding: '0',
+                margin: '0',
                 background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
             }}>
                 <div style={{
@@ -406,7 +411,7 @@ const HealthQuestionnaire = () => {
                     padding: '20px',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                     textAlign: 'center',
-                    margin: '0 auto' // Center the content
+                    margin: '0 auto'
                 }}>
                     {/* Logo with Image */}
                     <div style={{ marginBottom: '10px' }}>
@@ -524,7 +529,7 @@ const HealthQuestionnaire = () => {
                     </div>
 
                     {/* Submission Status */}
-                    <div style={{
+                    {/*<div style={{
                         margin: '12px 0',
                         padding: '10px',
                         backgroundColor: submissionCompleted ? '#e8f5e8' : '#fff3cd',
@@ -564,7 +569,7 @@ const HealthQuestionnaire = () => {
                                 Email sent to: {user.email}
                             </p>
                         )}
-                    </div>
+                    </div>*/}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
@@ -740,15 +745,15 @@ const HealthQuestionnaire = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0', // Remove all padding
-            margin: '0', // Remove all margin
+            padding: '0',
+            margin: '0',
             background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${VERY_LIGHT_BLUE})`,
         }}>
             <div style={{
                 position: 'relative',
                 width: '100%',
                 maxWidth: '400px',
-                padding: '0 15px', // Add horizontal padding only to inner container
+                padding: '0 15px',
                 boxSizing: 'border-box'
             }}>
                 {/* Logo with Image */}
