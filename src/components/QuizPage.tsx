@@ -1,7 +1,9 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { submitQuiz } from '../services/quizService';
 import type {QuizQuestion} from "../types/Quiz.ts";
+
+import asiriLogo from '../assets/asiri-logo.png';
 
 interface User {
     title: string;
@@ -19,6 +21,7 @@ const HealthQuestionnaire = () => {
     const [showResults, setShowResults] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionCompleted, setSubmissionCompleted] = useState(false);
+    const [logoError, setLogoError] = useState(false);
 
     // Get user data from navigation state
     const user: User | null = location.state?.user || null;
@@ -167,6 +170,109 @@ const HealthQuestionnaire = () => {
         </svg>
     );
 
+    // Enhanced Logo Component with White Background
+    const Logo = ({ size = 'medium' }) => {
+        const sizes = {
+            small: { width: 120, height: 'auto' },
+            medium: { width: 200, height: 'auto' },
+            large: { width: 260, height: 'auto' }
+        };
+
+        const { width, height } = sizes[size] || sizes.medium;
+
+        // If logo fails to load, show enhanced text version with white background
+        if (logoError) {
+            return (
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: PRIMARY_DARK,
+                    fontWeight: 'bold',
+                    width: width,
+                    margin: '0 auto 20px auto',
+                    padding: '20px 0',
+                    background: 'white',
+                    borderRadius: '16px',
+                    boxShadow: '0 8px 25px rgba(7, 41, 75, 0.15)',
+                    border: '2px solid rgba(7, 41, 75, 0.1)'
+                }}>
+                    <div style={{
+                        fontSize: size === 'small' ? '20px' : size === 'large' ? '32px' : '28px',
+                        lineHeight: '1.1',
+                        textAlign: 'center',
+                        letterSpacing: '1.5px',
+                        background: 'linear-gradient(135deg, #07294b, #1591cb)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent'
+                    }}>
+                        ASIRI
+                    </div>
+                    <div style={{
+                        fontSize: size === 'small' ? '14px' : size === 'large' ? '20px' : '18px',
+                        lineHeight: '1.2',
+                        textAlign: 'center',
+                        marginTop: '4px',
+                        background: 'linear-gradient(135deg, #1591cb, #57bef6)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent'
+                    }}>
+                        HEALTH
+                    </div>
+                    <div style={{
+                        fontSize: size === 'small' ? '10px' : size === 'large' ? '14px' : '12px',
+                        lineHeight: '1.2',
+                        textAlign: 'center',
+                        marginTop: '4px',
+                        fontWeight: 'normal',
+                        color: LIGHT_BLUE,
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(21, 145, 203, 0.1)'
+                    }}>
+                        Lifescore
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                margin: '0 auto 20px auto',
+                padding: '25px 0',
+                background: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 10px 30px rgba(7, 41, 75, 0.2)',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+                transition: 'all 0.3s ease'
+            }}>
+                <img
+                    src={asiriLogo}
+                    alt="Asiri Health Lifescore"
+                    style={{
+                        width: width,
+                        height: height,
+                        objectFit: 'contain',
+                        transition: 'transform 0.3s ease'
+                    }}
+                    onError={() => setLogoError(true)}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                        e.currentTarget.parentElement.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.parentElement.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
+                    }}
+                />
+            </div>
+        );
+    };
+
     // Compact Donut Chart
     const DonutChart = ({
                             percentage,
@@ -177,8 +283,6 @@ const HealthQuestionnaire = () => {
         size?: number;
         strokeWidth?: number;
     }) => {
-
-        //const DonutChart = ({percentage, size = 120, strokeWidth = 12 }) => {
         const radius = (size - strokeWidth) / 2;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference * (1 - percentage / 100);
@@ -270,6 +374,11 @@ const HealthQuestionnaire = () => {
                     boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                     textAlign: 'center'
                 }}>
+                    {/* Logo */}
+                    <div style={{ marginBottom: '10px' }}>
+                        <Logo size="small" />
+                    </div>
+
                     {/* Header */}
                     <div style={{ marginBottom: '15px' }}>
                         <h1 style={{
@@ -500,6 +609,9 @@ const HealthQuestionnaire = () => {
                 width: '100%',
                 maxWidth: '400px'
             }}>
+                {/* Logo */}
+                <Logo size="medium" />
+
                 {/* Progress indicator */}
                 <div style={{
                     display: 'flex',
