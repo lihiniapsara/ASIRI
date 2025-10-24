@@ -164,7 +164,7 @@ const Welcome = () => {
             // ✅ STORAGE EVENT TRIGGER කරන්න
             window.dispatchEvent(new Event('storage'));
 
-            alert('Registration successful!');
+          //  alert('Registration successful!');
             navigate("/quiz", { state: { user: newUser } }); // Go to Quiz page
         } catch (err) {
             alert('Registration failed! Check console.');
