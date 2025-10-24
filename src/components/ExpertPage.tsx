@@ -73,9 +73,9 @@ const HealthCardPage = () => {
             message: `Your scores are: RST - ${rstScore}, BP - ${bpScore}, BMI - ${bmiScore}.`
         };
 
-        const SERVICE_ID = 'service_43k5omt';
-        const TEMPLATE_ID = 'template_su223cy';
-        const PUBLIC_KEY = 'TABzRK7DGS_KJI5Ox';
+        const SERVICE_ID = 'service_g9ud6tf';
+        const TEMPLATE_ID = 'template_10anx1u';
+        const PUBLIC_KEY = 'GT67rJ-Rr-55GEzmS';
 
         emailjs
             .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)

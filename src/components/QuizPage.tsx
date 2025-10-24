@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import {useNavigate} from "react-router-dom";
 
+import emailjs from "@emailjs/browser";
+
+
 const HealthQuestionnaire = () => {
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [selectedOption, setSelectedOption] = useState<number>(0);
@@ -60,17 +63,6 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-    const handleExpertAccess = () => {
-        if (authKey === 'asiriadmin') {
-            setShowAuthPopup(false);
-            setAuthKey('');
-            setAuthError(false);
-            alert('Access granted! Navigating to Expert page...');
-            navigate('/expert');
-        } else {
-            setAuthError(true);
-        }
-    };
 
     const handleOK = () => {
         if (selectedOption === null) return;
@@ -83,14 +75,68 @@ const HealthQuestionnaire = () => {
             setSelectedOption(0);
         } else {
             setShowResults(true);
+            //sendQuizResultsEmail();
         }
     };
+
+
+
 
     const maxScore = 400;
     const totalScore = scores.reduce((sum, score) => sum + score, 0);
     const percentage = Math.round((totalScore / maxScore) * 100);
 
+    const handleExpertAccess = () => {
+        if (authKey === 'asiriadmin') {
+            setShowAuthPopup(false);
+            setAuthKey('');
+            setAuthError(false);
+            sendQuizResultsEmail(totalScore)
+            alert('Access granted! Navigating to Expert page...');
+            navigate('/expert');
+        } else {
+            setAuthError(true);
+        }
+    };
+
+
+    const sendQuizResultsEmail = async (totalScore: number) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!user?.email) {
+            console.log('No user email found, skipping email sending');
+            return;
+        }
+
+        const scorePercentage = Math.round((totalScore / (questions.length * 100)) * 100);
+
+        console.log('Sending email to:', user.email);
+        const templateParams = {
+            name: user?.name || 'User',
+            email: user.email,
+            title: user?.title || '',
+            message: `Your health assessment results are ready!\n\n` +
+                `Total Score: ${totalScore} (${scorePercentage}%)\n` +
+                `Questions Answered: 4/4\n\n` +
+                `Thank you for completing the assessment!`
+        };
+
+        try {
+            await emailjs.send(
+                'service_g9ud6tf',
+                'template_10anx1u',
+                templateParams,
+                'GT67rJ-Rr-55GEzmS'
+            );
+            console.log('Quiz results email sent successfully');
+        } catch (error) {
+            console.error('Failed to send quiz results email:', error);
+        }
+    };
+
+
     const getHealthMessage = () => {
+         console.log("kkkk")
+
         if (percentage >= 80) return {
             text: 'Excellent! Keep it up!',
             emoji: '🌟',
