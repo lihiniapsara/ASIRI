@@ -103,7 +103,7 @@ const HealthCardPage = () => {
 ━━━━━━━━━━━━━━━━
 💪 *Lifescore:* ${user.lifescore}%
 📏 *BMI Score:* ${bmiScore}
-🫀 *RST Score:* ${rstScore}
+🫀 *RBS Score:* ${rstScore}
 🩺 *BP Score:* ${bpScore}
 ━━━━━━━━━━━━━━━━
 
@@ -305,12 +305,12 @@ _Thank you for choosing ASIRI HEALTH_`;
 
                             <div>
                                 <label htmlFor="rst" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    🫀 RST Score
+                                    🫀 RBS Score
                                 </label>
                                 <input
                                     id="rst"
                                     type="text"
-                                    placeholder="Enter RST score"
+                                    placeholder="Enter RBS score"
                                     value={rstScore}
                                     onChange={(e) => setRstScore(e.target.value)}
                                     className="w-full h-10 border-2 border-blue-200 bg-white rounded-md px-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors text-sm"
