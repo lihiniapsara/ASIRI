@@ -176,10 +176,6 @@ const HealthQuestionnaire = () => {
         }
     };
 
-    const handleGoToHealthCard = () => {
-        navigate('/health-card');
-    };
-
     interface ChevronRightProps {
         size?: number;
         color?: string;
@@ -560,31 +556,6 @@ const HealthQuestionnaire = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                        <button
-                            onClick={handleGoToHealthCard}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                background: GREEN_BUTTON,
-                                color: 'white',
-                                fontSize: '14px',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '8px'
-                            }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-                            </svg>
-                            📊 Go to Health Card for Full Report
-                        </button>
-
                         <button
                             onClick={() => setShowAuthPopup(true)}
                             style={{
