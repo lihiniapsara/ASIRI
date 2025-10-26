@@ -227,7 +227,7 @@ const HealthCardPage = () => {
                 pdf.setFont('helvetica', 'normal');
                 pdf.setTextColor(0, 0, 0);
 
-                analysis.forEach((item, index) => {
+                analysis.forEach((item) => {
                     if (yPosition > 270) {
                         pdf.addPage();
                         yPosition = 30;
@@ -245,9 +245,7 @@ const HealthCardPage = () => {
 
                     pdf.text(`${emoji} ${item}`, margin, yPosition);
                     yPosition += 6;
-                });
-
-                yPosition += 10;
+                });                yPosition += 10;
 
                 // Health Recommendations
                 if (yPosition > 220) {
