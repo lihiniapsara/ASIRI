@@ -1,15 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
-import emailjs from "@emailjs/browser";
-
-// Initialize EmailJS - Using the credentials from 2nd code
-try {
-    emailjs.init('GT67rJ-Rr-55GEzmS'); // Using public key from 2nd code
-} catch (error) {
-    console.error('Failed to initialize EmailJS:', error);
-}
-
-// Add your logo import - adjust the path according to your project structure
 import asiriLogo from '../assets/asiri-logo.png';
 
 const HealthQuestionnaire = () => {
@@ -102,7 +92,7 @@ const HealthQuestionnaire = () => {
         }
     ];
 
-    const handleOK = async () => {
+    const handleOK = () => {
         if (selectedOption === null) return;
 
         const newScores = [...scores, questions[currentQuestion].options[selectedOption].score];
@@ -112,45 +102,63 @@ const HealthQuestionnaire = () => {
             setCurrentQuestion(currentQuestion + 1);
             setSelectedOption(null);
         } else {
-            setShowResults(true);
+            // Save results to localStorage for HealthCardPage to access
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const questionnaireResults = {
+                scores: newScores,
+                completedAt: new Date().toISOString(),
+                user: user.name,
+                totalScore: newScores.reduce((sum, score) => sum + score, 0),
+                percentage: Math.round((newScores.reduce((sum, score) => sum + score, 0) / 400) * 100)
+            };
+            localStorage.setItem('questionnaireResults', JSON.stringify(questionnaireResults));
 
-            const totalScore = newScores.reduce((sum, score) => sum + score, 0);
-            await sendQuizResultsEmail(totalScore);
+            setShowResults(true);
         }
     };
 
-    // Email sending function from 2nd code
-    const sendQuizResultsEmail = async (totalScore: number) => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (!user?.email) {
-            console.log('No user email found, skipping email sending');
-            return;
-        }
+    // Helper functions
+    const getHealthMessage = () => {
+        const totalScore = scores.reduce((sum, score) => sum + score, 0);
+        const percentage = Math.round((totalScore / 400) * 100);
 
-        const scorePercentage = Math.round((totalScore / (questions.length * 100)) * 100);
-
-        console.log('Sending email to:', user.email);
-        const templateParams = {
-            name: user?.name || 'User',
-            email: user.email,
-            title: user?.title || '',
-            message: `Your health assessment results are ready!\n\n` +
-                `Total Score: ${totalScore} (${scorePercentage}%)\n` +
-                `Questions Answered: 4/4\n\n` +
-                `Thank you for completing the assessment!`
+        if (percentage >= 80) return {
+            text: '🌟 EXCELLENT HEALTH HABITS',
+            emoji: '🌟',
+            range: '100-80',
+            message: 'You maintain excellent health habits! Keep up the great work.'
         };
+        if (percentage >= 60) return {
+            text: '👍 GOOD HEALTH HABITS',
+            emoji: '👍',
+            range: '80-60',
+            message: 'You have good health habits with some room for improvement.'
+        };
+        if (percentage >= 40) return {
+            text: '💪 FAIR HEALTH HABITS',
+            emoji: '💪',
+            range: '60-40',
+            message: 'Consider improving some health habits for better wellbeing.'
+        };
+        return {
+            text: '🎯 NEEDS IMPROVEMENT',
+            emoji: '🎯',
+            range: '<40',
+            message: 'Focus on developing healthier lifestyle habits.'
+        };
+    };
 
-        try {
-            await emailjs.send(
-                'service_g9ud6tf',
-                'template_10anx1u',
-                templateParams,
-                'GT67rJ-Rr-55GEzmS'
-            );
-            console.log('Quiz results email sent successfully');
-        } catch (error) {
-            console.error('Failed to send quiz results email:', error);
-        }
+    const getRecommendations = () => {
+        const recommendations = [
+            'Drink 2-3 liters of water daily for proper hydration',
+            'Aim for 10,000 steps at least 3-4 days per week',
+            'Limit eating out to 1-2 times per week for better nutrition',
+            'Establish a screen-free bedtime routine for better sleep',
+            'Include fruits and vegetables in every meal',
+            'Get 7-8 hours of quality sleep each night',
+            'Practice stress management techniques daily'
+        ];
+        return recommendations;
     };
 
     const maxScore = 400;
@@ -162,39 +170,14 @@ const HealthQuestionnaire = () => {
             setShowAuthPopup(false);
             setAuthKey('');
             setAuthError(false);
-            sendQuizResultsEmail(totalScore);
             navigate('/expert');
         } else {
             setAuthError(true);
         }
     };
 
-
-    const getHealthMessage = () => {
-        if (percentage >= 80) return {
-            text: 'Excellent! Keep it up!',
-            emoji: '🌟',
-            range: '100-80',
-            message: 'Maintain your healthy habits.'
-        };
-        if (percentage >= 60) return {
-            text: 'Good job!',
-            emoji: '👍',
-            range: '80-60',
-            message: 'Keep improving daily.'
-        };
-        if (percentage >= 40) return {
-            text: 'Fair',
-            emoji: '💪',
-            range: '60-40',
-            message: 'Develop healthier habits.'
-        };
-        return {
-            text: 'Needs work',
-            emoji: '🎯',
-            range: '<40',
-            message: 'Start healthy habits now.'
-        };
+    const handleGoToHealthCard = () => {
+        navigate('/health-card');
     };
 
     interface ChevronRightProps {
@@ -330,10 +313,10 @@ const HealthQuestionnaire = () => {
         const strokeDashoffset = circumference * (1 - percentage / 100);
 
         const getGradientColors = () => {
-            if (percentage >= 80) return ['#ed1bab', '#5409a0'];
-            if (percentage >= 60) return ['#ee460aff', '#0af745ff'];
-            if (percentage >= 40) return ['#02ff56ff', '#4566e9ff'];
-            return ['#8800ffff', '#ff5202ff'];
+            if (percentage >= 80) return ['#00CC66', '#00994d'];
+            if (percentage >= 60) return ['#FFA500', '#FF8C00'];
+            if (percentage >= 40) return ['#FF6B6B', '#FF4757'];
+            return ['#FF4757', '#FF3742'];
         };
 
         const [startColor, endColor] = getGradientColors();
@@ -399,7 +382,7 @@ const HealthQuestionnaire = () => {
             }}>
                 <div style={{
                     width: '100%',
-                    maxWidth: '380px',
+                    maxWidth: '400px',
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)',
                     borderRadius: '16px',
@@ -421,7 +404,7 @@ const HealthQuestionnaire = () => {
                             color: PRIMARY_DARK,
                             margin: '0 0 8px 0'
                         }}>
-                            Health Score
+                            Health Assessment Complete!
                         </h1>
                         <p style={{
                             fontSize: '14px',
@@ -429,6 +412,30 @@ const HealthQuestionnaire = () => {
                             margin: '0'
                         }}>
                             {user ? `${user.title} ${user.name}` : 'User'}
+                        </p>
+                    </div>
+
+                    <div style={{
+                        margin: '15px 0',
+                        padding: '12px',
+                        backgroundColor: '#e7f5ff',
+                        borderRadius: '10px',
+                        border: '2px solid #1591cb'
+                    }}>
+                        <p style={{
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: PRIMARY_DARK,
+                            margin: '0'
+                        }}>
+                            ✅ Questionnaire Completed Successfully!
+                        </p>
+                        <p style={{
+                            fontSize: '12px',
+                            color: '#6B7280',
+                            margin: '4px 0 0 0'
+                        }}>
+                            Your results have been saved. Go to Health Card to generate comprehensive report.
                         </p>
                     </div>
 
@@ -447,7 +454,7 @@ const HealthQuestionnaire = () => {
                             color: PRIMARY_DARK,
                             margin: '0'
                         }}>
-                            {message.range}
+                            Score Range: {message.range}
                         </p>
                     </div>
 
@@ -461,19 +468,19 @@ const HealthQuestionnaire = () => {
                             {message.emoji}
                         </p>
                         <p style={{
-                            fontSize: '14px',
-                            fontWeight: '600',
+                            fontSize: '16px',
+                            fontWeight: '700',
                             color: PRIMARY_DARK,
                             lineHeight: '1.3',
-                            margin: '0'
+                            margin: '0 0 4px 0'
                         }}>
                             {message.text}
                         </p>
                         <p style={{
-                            fontSize: '12px',
+                            fontSize: '13px',
                             color: '#6B7280',
-                            margin: '4px 0 0 0',
-                            lineHeight: '1.2'
+                            margin: '0',
+                            lineHeight: '1.3'
                         }}>
                             {message.message}
                         </p>
@@ -516,20 +523,74 @@ const HealthQuestionnaire = () => {
                         color: 'white'
                     }}>
                         <p style={{ fontSize: '12px', margin: '0 0 4px 0', opacity: 0.9 }}>
-                            Total Score
+                            Total Questionnaire Score
                         </p>
                         <p style={{ fontSize: '24px', fontWeight: '800', margin: '0' }}>
                             {totalScore}<span style={{ fontSize: '14px', opacity: 0.8 }}>/{maxScore}</span>
                         </p>
                     </div>
 
+                    {/* Recommendations */}
+                    <div style={{
+                        margin: '12px 0',
+                        padding: '12px',
+                        backgroundColor: '#f0f9ff',
+                        borderRadius: '10px',
+                        border: '1px solid #bae6fd'
+                    }}>
+                        <h4 style={{
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            color: PRIMARY_DARK,
+                            margin: '0 0 8px 0'
+                        }}>
+                            💡 Health Recommendations
+                        </h4>
+                        <div style={{
+                            fontSize: '11px',
+                            color: '#4b5563',
+                            lineHeight: '1.4'
+                        }}>
+                            {getRecommendations().slice(0, 3).map((rec, idx) => (
+                                <div key={idx} style={{ marginBottom: '4px' }}>
+                                    • {rec}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <button
+                            onClick={handleGoToHealthCard}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: GREEN_BUTTON,
+                                color: 'white',
+                                fontSize: '14px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                            </svg>
+                            📊 Go to Health Card for Full Report
+                        </button>
+
                         <button
                             onClick={() => setShowAuthPopup(true)}
                             style={{
                                 width: '100%',
                                 padding: '12px',
-                                borderRadius: '20px',
+                                borderRadius: '10px',
                                 border: '2px solid #06b0ff',
                                 background: 'transparent',
                                 color: '#06b0ff',
@@ -538,16 +599,8 @@ const HealthQuestionnaire = () => {
                                 cursor: 'pointer',
                                 transition: 'all 0.2s'
                             }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.background = '#06b0ff';
-                                e.currentTarget.style.color = 'white';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#06b0ff';
-                            }}
                         >
-                            Meet Health Experts
+                            👨‍⚕️ Consult Health Experts
                         </button>
                     </div>
                 </div>
@@ -582,7 +635,7 @@ const HealthQuestionnaire = () => {
                                 margin: '0 0 8px 0',
                                 textAlign: 'center'
                             }}>
-                                Access Required
+                                Expert Access
                             </h3>
                             <p style={{
                                 fontSize: '13px',
@@ -590,7 +643,7 @@ const HealthQuestionnaire = () => {
                                 margin: '0 0 20px 0',
                                 textAlign: 'center'
                             }}>
-                                Enter authorization key to continue
+                                Enter authorization key to consult health experts
                             </p>
 
                             <input
@@ -605,7 +658,7 @@ const HealthQuestionnaire = () => {
                                         handleExpertAccess();
                                     }
                                 }}
-                                placeholder="Enter key"
+                                placeholder="Enter authorization key"
                                 style={{
                                     width: '100%',
                                     padding: '12px',
