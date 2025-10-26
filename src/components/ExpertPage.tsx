@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
 import asiriLogo from '../assets/asiri-logo.png';
 
@@ -13,7 +14,7 @@ const HealthCardPage = () => {
         title: 'Mr.',
         name: '',
         email: '',
-        lifescore: 30, // Default score
+        lifescore: 30,
     });
     const [bmiScore, setBmiScore] = useState('');
     const [rstScore, setRstScore] = useState('');
@@ -21,10 +22,16 @@ const HealthCardPage = () => {
     const [logoError, setLogoError] = useState(false);
     const [dataLoaded, setDataLoaded] = useState(false);
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         loadUserData();
         loadQuizScore();
     }, []);
+
+    const handleAddNewUser = () => {
+        navigate("/");
+    };
 
     const loadUserData = () => {
         try {
@@ -50,7 +57,6 @@ const HealthCardPage = () => {
         }
     };
 
-    // Load quiz score from localStorage
     const loadQuizScore = () => {
         try {
             const quizResults = localStorage.getItem('quizResults');
@@ -64,7 +70,6 @@ const HealthCardPage = () => {
                         lifescore: results.percentage
                     }));
 
-                    // Update user in localStorage with new lifescore
                     const savedUser = localStorage.getItem('user');
                     if (savedUser) {
                         const userData = JSON.parse(savedUser);
@@ -78,11 +83,6 @@ const HealthCardPage = () => {
         } catch (error) {
             console.error('Error loading quiz score:', error);
         }
-    };
-
-    const refreshUserData = () => {
-        loadUserData();
-        loadQuizScore(); // Also refresh quiz score
     };
 
     const handleSendEmail = () => {
@@ -152,7 +152,6 @@ Thank you for choosing ASIRI HEALTH`;
         window.open(whatsappUrl, '_blank');
     };
 
-    // Logo Component
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 100, height: 'auto' },
@@ -195,7 +194,6 @@ Thank you for choosing ASIRI HEALTH`;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference * (1 - progress);
 
-    // Get health message based on lifescore
     const getHealthMessage = () => {
         if (user.lifescore >= 80) return {
             text: 'Excellent! Keep it up!',
@@ -250,28 +248,29 @@ Thank you for choosing ASIRI HEALTH`;
 
                 {/* Main Content - Scrollable area */}
                 <div className="flex-1 p-4 space-y-4 overflow-y-auto w-full max-w-md mx-auto">
-                    {/* Refresh Button */}
+                    {/* Add New User Button - Centered */}
                     <div className="text-center mb-2">
                         <button
-                            onClick={refreshUserData}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-md flex items-center justify-center mx-auto"
+                            onClick={handleAddNewUser}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-colors shadow-md flex items-center justify-center mx-auto"
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" className="mr-2">
-                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white" className="mr-2">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                             </svg>
-                            Refresh User Data
+                            Add New User
                         </button>
-                        {user.name && (
-                            <p className="text-xs text-gray-600 mt-1">
-                                Loaded: {user.title} {user.name}
-                            </p>
-                        )}
-                        {!user.name && dataLoaded && (
-                            <p className="text-xs text-yellow-600 mt-1">
-                                No user data found. Please register first.
-                            </p>
-                        )}
                     </div>
+
+                    {user.name && (
+                        <p className="text-xs text-gray-600 text-center">
+                            Current User: {user.title} {user.name}
+                        </p>
+                    )}
+                    {!user.name && dataLoaded && (
+                        <p className="text-xs text-yellow-600 text-center">
+                            No user data found. Please register first.
+                        </p>
+                    )}
 
                     {/* User Info */}
                     <div className="text-center">
