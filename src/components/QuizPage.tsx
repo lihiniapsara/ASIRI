@@ -196,7 +196,9 @@ const HealthQuestionnaire = () => {
             large: { width: 260, height: 'auto' }
         };
 
-        const { width, height } = sizes[size] || sizes.medium;
+        // Type-safe size selection with fallback
+        const selectedSize = sizes[size] || sizes.medium;
+        const { width, height } = selectedSize;
 
         // If logo fails to load, show enhanced text version with white background
         if (logoError) {
@@ -281,6 +283,7 @@ const HealthQuestionnaire = () => {
                     onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'scale(1.05)';
                         const parent = e.currentTarget.parentElement;
+                        // Null check added
                         if (parent) {
                             parent.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
                         }
@@ -288,6 +291,7 @@ const HealthQuestionnaire = () => {
                     onMouseOut={(e) => {
                         e.currentTarget.style.transform = 'scale(1)';
                         const parent = e.currentTarget.parentElement;
+                        // Null check added
                         if (parent) {
                             parent.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
                         }

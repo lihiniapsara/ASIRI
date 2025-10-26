@@ -639,7 +639,7 @@ _Thank you for choosing ASIRI HEALTH_ 🌟`;
         window.open(whatsappUrl, '_blank');
     };
 
-    // Logo Component
+    // Logo Component - Fixed TypeScript errors
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 100, height: 'auto' },
@@ -647,7 +647,9 @@ _Thank you for choosing ASIRI HEALTH_ 🌟`;
             large: { width: 180, height: 'auto' }
         };
 
-        const { width, height } = sizes[size] || sizes.medium;
+        // Type-safe size selection with fallback
+        const selectedSize = sizes[size] || sizes.medium;
+        const { width, height } = selectedSize;
 
         if (logoError) {
             return (
