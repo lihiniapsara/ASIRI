@@ -66,7 +66,7 @@ const HealthCardPage = () => {
         loadUserData();
     };
 
-    // Comprehensive PDF Download Function
+    // Enhanced Comprehensive PDF Download Function with Better Design
     const handleDownloadComprehensivePDF = () => {
         if (isDownloading) return;
 
@@ -80,163 +80,281 @@ const HealthCardPage = () => {
                 // Create new PDF document
                 const pdf = new jsPDF();
                 let yPosition = 20;
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const margin = 20;
 
-                // Add header
-                pdf.setFillColor(7, 41, 75);
-                pdf.rect(0, 0, 210, 40, 'F');
+                // Add gradient header
+                pdf.setFillColor(21, 145, 203); // PRIMARY_BLUE
+                pdf.rect(0, 0, pageWidth, 50, 'F');
+
+                // Add decorative elements
+                pdf.setFillColor(255, 255, 255, 0.3);
+                pdf.circle(30, 25, 15, 'F');
+                pdf.circle(pageWidth - 30, 35, 12, 'F');
+
+                // Header content
                 pdf.setTextColor(255, 255, 255);
-                pdf.setFontSize(20);
+                pdf.setFontSize(24);
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('ASIRI HEALTH', 105, 15, { align: 'center' });
-                pdf.setFontSize(12);
-                pdf.text('COMPREHENSIVE HEALTH REPORT', 105, 25, { align: 'center' });
+                pdf.text('🏥 ASIRI HEALTH', pageWidth / 2, 20, { align: 'center' });
 
-                // Reset text color
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text('COMPREHENSIVE HEALTH REPORT', pageWidth / 2, 30, { align: 'center' });
+
+                pdf.setFontSize(10);
+                pdf.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, pageWidth / 2, 40, { align: 'center' });
+
+                yPosition = 65;
+
+                // Patient Information Section with emoji
+                pdf.setFillColor(245, 249, 255);
+                pdf.roundedRect(margin - 5, yPosition - 10, pageWidth - (margin * 2), 35, 3, 3, 'F');
+
+                pdf.setTextColor(21, 145, 203);
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('👤 PATIENT INFORMATION', margin, yPosition);
+                yPosition += 15;
+
                 pdf.setTextColor(0, 0, 0);
-                yPosition = 50;
-
-                // Patient Information
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('PATIENT INFORMATION', 20, yPosition);
-                yPosition += 10;
-
                 pdf.setFontSize(10);
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(`Name: ${user.title || ''} ${user.name || 'Not provided'}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`Email: ${user.email || 'Not provided'}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`Report Date: ${new Date().toLocaleDateString()}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`Report Time: ${new Date().toLocaleTimeString()}`, 20, yPosition);
-                yPosition += 15;
 
-                // Health Scores Summary
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('HEALTH SCORES SUMMARY', 20, yPosition);
+                const patientInfo = [
+                    `🎯 Name: ${user.title || ''} ${user.name || 'Not provided'}`,
+                    `📧 Email: ${user.email || 'Not provided'}`,
+                    `📅 Report Date: ${new Date().toLocaleDateString()}`,
+                    `⏰ Report Time: ${new Date().toLocaleTimeString()}`
+                ];
+
+                patientInfo.forEach(info => {
+                    pdf.text(info, margin, yPosition);
+                    yPosition += 6;
+                });
+
                 yPosition += 10;
 
-                pdf.setFontSize(10);
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Overall Lifescore: ${user.lifescore || 30}%`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`BMI Score: ${bmiScore || 'Not provided'}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`RBS Score: ${rstScore || 'Not provided'}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`BP Score: ${bpScore || 'Not provided'}`, 20, yPosition);
+                // Health Scores Summary with colorful boxes
+                pdf.setTextColor(21, 145, 203);
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('📊 HEALTH SCORES SUMMARY', margin, yPosition);
                 yPosition += 15;
 
-                // Health Assessment
-                pdf.setFontSize(14);
+                const scores = [
+                    { emoji: '💖', label: 'Overall Lifescore', value: `${user.lifescore || 30}%`, color: [21, 145, 203] },
+                    { emoji: '📏', label: 'BMI Score', value: bmiScore || 'Not provided', color: [86, 188, 246] },
+                    { emoji: '🩸', label: 'RBS Score', value: rstScore || 'Not provided', color: [135, 206, 250] },
+                    { emoji: '❤️', label: 'BP Score', value: bpScore || 'Not provided', color: [173, 216, 230] }
+                ];
+
+                scores.forEach((score, index) => {
+                    const x = margin + (index % 2) * 85;
+                    const y = yPosition + Math.floor(index / 2) * 25;
+
+                    pdf.setFillColor(score.color[0], score.color[1], score.color[2], 0.1);
+                    pdf.roundedRect(x, y - 8, 80, 20, 3, 3, 'F');
+
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(8);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`${score.emoji} ${score.label}`, x + 5, y);
+
+                    pdf.setFontSize(9);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(score.color[0], score.color[1], score.color[2]);
+                    pdf.text(score.value, x + 5, y + 8);
+                });
+
+                yPosition += 35;
+
+                // Health Assessment with status indicator
+                pdf.setTextColor(21, 145, 203);
+                pdf.setFontSize(16);
                 pdf.setFont('helvetica', 'bold');
-                pdf.text('HEALTH ASSESSMENT', 20, yPosition);
-                yPosition += 10;
+                pdf.text('🎯 HEALTH ASSESSMENT', margin, yPosition);
+                yPosition += 15;
 
                 const healthStatus = getHealthStatus();
-                pdf.setFontSize(10);
+                const statusColor = user.lifescore >= 60 ? [34, 197, 94] : user.lifescore >= 40 ? [234, 179, 8] : [239, 68, 68];
+
+                pdf.setFillColor(statusColor[0], statusColor[1], statusColor[2], 0.1);
+                pdf.roundedRect(margin, yPosition - 8, pageWidth - (margin * 2), 25, 3, 3, 'F');
+
+                pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`📈 ${healthStatus.text}`, margin + 5, yPosition);
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(9);
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(`Status: ${healthStatus.text}`, 20, yPosition);
-                yPosition += 6;
-                pdf.text(`Message: ${healthStatus.message}`, 20, yPosition);
+                pdf.text(healthStatus.message, margin + 5, yPosition + 8);
+
+                yPosition += 30;
+
+                // Progress bar for lifescore
+                const progressWidth = pageWidth - (margin * 2);
+                const filledWidth = (progressWidth * (user.lifescore || 30)) / 100;
+
+                pdf.setFillColor(229, 231, 235);
+                pdf.rect(margin, yPosition, progressWidth, 8, 'F');
+
+                pdf.setFillColor(21, 145, 203);
+                pdf.rect(margin, yPosition, filledWidth, 8, 'F');
+
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(8);
+                pdf.text(`Lifescore Progress: ${user.lifescore || 30}%`, margin, yPosition - 3);
+
                 yPosition += 15;
+
+                // Detailed Health Analysis
+                if (yPosition > 200) {
+                    pdf.addPage();
+                    yPosition = 30;
+                }
+
+                pdf.setTextColor(21, 145, 203);
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('🔍 DETAILED HEALTH ANALYSIS', margin, yPosition);
+                yPosition += 15;
+
+                const analysis = getDetailedAnalysis();
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(0, 0, 0);
+
+                analysis.forEach((item, index) => {
+                    if (yPosition > 270) {
+                        pdf.addPage();
+                        yPosition = 30;
+                    }
+
+                    const emoji = item.includes('underweight') ? '⚠️' :
+                        item.includes('healthy') ? '✅' :
+                            item.includes('overweight') ? '📊' :
+                                item.includes('obesity') ? '🔴' :
+                                    item.includes('normal') ? '👍' :
+                                        item.includes('pre-diabetes') ? '🟡' :
+                                            item.includes('diabetes') ? '🔴' :
+                                                item.includes('Blood Pressure') ? '❤️' :
+                                                    item.includes('Lifescore') ? '💖' : '📝';
+
+                    pdf.text(`${emoji} ${item}`, margin, yPosition);
+                    yPosition += 6;
+                });
+
+                yPosition += 10;
+
+                // Health Recommendations
+                if (yPosition > 220) {
+                    pdf.addPage();
+                    yPosition = 30;
+                }
+
+                pdf.setTextColor(21, 145, 203);
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('💡 HEALTH RECOMMENDATIONS', margin, yPosition);
+                yPosition += 15;
+
+                const recommendations = getHealthRecommendations();
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(0, 0, 0);
+
+                recommendations.forEach((rec, index) => {
+                    if (yPosition > 270) {
+                        pdf.addPage();
+                        yPosition = 30;
+                    }
+
+                    const emojis = ['🏥', '🥗', '🏃', '💧', '😴', '🧘', '🚫', '🚭', '📊', '👨‍⚕️'];
+                    const emoji = emojis[index] || '✅';
+
+                    pdf.text(`${emoji} ${rec}`, margin, yPosition);
+                    yPosition += 6;
+                });
+
+                yPosition += 10;
 
                 // Questionnaire Results (if available)
                 if (questionnaireResults.scores && questionnaireResults.scores.length > 0) {
-                    pdf.setFontSize(14);
+                    if (yPosition > 240) {
+                        pdf.addPage();
+                        yPosition = 30;
+                    }
+
+                    pdf.setTextColor(21, 145, 203);
+                    pdf.setFontSize(16);
                     pdf.setFont('helvetica', 'bold');
-                    pdf.text('QUESTIONNAIRE RESULTS', 20, yPosition);
-                    yPosition += 10;
+                    pdf.text('📝 QUESTIONNAIRE RESULTS', margin, yPosition);
+                    yPosition += 15;
 
                     const totalScore = questionnaireResults.scores.reduce((sum: number, score: number) => sum + score, 0);
                     const percentage = Math.round((totalScore / 400) * 100);
 
+                    pdf.setFillColor(245, 249, 255);
+                    pdf.roundedRect(margin, yPosition - 5, pageWidth - (margin * 2), 15, 3, 3, 'F');
+
+                    pdf.setTextColor(0, 0, 0);
                     pdf.setFontSize(10);
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text(`Total Questionnaire Score: ${totalScore}/400 (${percentage}%)`, 20, yPosition);
-                    yPosition += 8;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`📊 Total Questionnaire Score: ${totalScore}/400 (${percentage}%)`, margin + 5, yPosition);
+                    yPosition += 12;
 
                     const questions = [
-                        'How many liters of water do you drink daily?',
-                        'Days with 10,000+ steps this week?',
-                        'Days eating out this week?',
-                        'Your routine 1 hour before bedtime?'
+                        '💧 How many liters of water do you drink daily?',
+                        '👣 Days with 10,000+ steps this week?',
+                        '🍔 Days eating out this week?',
+                        '🌙 Your routine 1 hour before bedtime?'
                     ];
 
                     questions.forEach((q, idx) => {
-                        if (yPosition > 250) {
+                        if (yPosition > 270) {
                             pdf.addPage();
-                            yPosition = 20;
+                            yPosition = 30;
                         }
-                        pdf.text(`Q${idx + 1}: ${q}`, 25, yPosition);
+
+                        pdf.setTextColor(21, 145, 203);
+                        pdf.setFontSize(9);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(`Q${idx + 1}:`, margin, yPosition);
+
+                        pdf.setTextColor(0, 0, 0);
+                        pdf.text(q.substring(4), margin + 15, yPosition);
                         yPosition += 5;
-                        pdf.text(`Score: ${questionnaireResults.scores[idx]} points`, 30, yPosition);
+
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.setFontSize(8);
+                        pdf.text(`🎯 Score: ${questionnaireResults.scores[idx]} points`, margin + 20, yPosition);
                         yPosition += 8;
                     });
                     yPosition += 10;
                 }
 
-                // Detailed Health Analysis
-                if (yPosition > 200) {
-                    pdf.addPage();
-                    yPosition = 20;
-                }
+                // Footer with decorative elements
+                pdf.setFillColor(21, 145, 203, 0.1);
+                pdf.rect(0, pdf.internal.pageSize.getHeight() - 30, pageWidth, 30, 'F');
 
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('DETAILED HEALTH ANALYSIS', 20, yPosition);
-                yPosition += 10;
-
-                const analysis = getDetailedAnalysis();
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-
-                analysis.forEach(item => {
-                    if (yPosition > 270) {
-                        pdf.addPage();
-                        yPosition = 20;
-                    }
-                    pdf.text(`• ${item}`, 20, yPosition);
-                    yPosition += 5;
-                });
-                yPosition += 10;
-
-                // Health Recommendations
-                if (yPosition > 200) {
-                    pdf.addPage();
-                    yPosition = 20;
-                }
-
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('HEALTH RECOMMENDATIONS', 20, yPosition);
-                yPosition += 10;
-
-                const recommendations = getHealthRecommendations();
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-
-                recommendations.forEach(rec => {
-                    if (yPosition > 270) {
-                        pdf.addPage();
-                        yPosition = 20;
-                    }
-                    pdf.text(`• ${rec}`, 20, yPosition);
-                    yPosition += 5;
-                });
-
-                yPosition += 10;
-
-                // Footer
-                pdf.setFontSize(8);
                 pdf.setTextColor(100, 100, 100);
-                pdf.text('This comprehensive health report is generated by Asiri Health Lifescore System.', 20, yPosition);
-                yPosition += 4;
-                pdf.text('For detailed medical advice, please consult with qualified healthcare professionals.', 20, yPosition);
-                yPosition += 4;
-                pdf.text(`Report ID: ASR${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`, 20, yPosition);
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text('🏥 This comprehensive health report is generated by Asiri Health Lifescore System.', margin, pdf.internal.pageSize.getHeight() - 20);
+                pdf.text('👨‍⚕️ For detailed medical advice, please consult with qualified healthcare professionals.', margin, pdf.internal.pageSize.getHeight() - 15);
+                pdf.text(`📋 Report ID: ASR${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`, margin, pdf.internal.pageSize.getHeight() - 10);
+
+                // Add page numbers
+                const pageCount = pdf.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.setTextColor(150, 150, 150);
+                    pdf.setFontSize(8);
+                    pdf.text(`Page ${i} of ${pageCount}`, pageWidth - 25, pdf.internal.pageSize.getHeight() - 10);
+                }
 
                 // Save PDF
                 const patientName = user.name ? user.name.replace(/\s+/g, '_') : 'Patient';
@@ -259,43 +377,48 @@ const HealthCardPage = () => {
         const questionnaireResults = JSON.parse(localStorage.getItem('questionnaireResults') || '{}');
 
         const reportContent = `
-ASIRI HEALTH - COMPREHENSIVE HEALTH REPORT
+🏥 ASIRI HEALTH - COMPREHENSIVE HEALTH REPORT
 ===========================================
 
-PATIENT INFORMATION
--------------------
-Name: ${user.title || ''} ${user.name || 'Not provided'}
-Email: ${user.email || 'Not provided'}
-Report Date: ${new Date().toLocaleDateString()}
+👤 PATIENT INFORMATION
+----------------------
+🎯 Name: ${user.title || ''} ${user.name || 'Not provided'}
+📧 Email: ${user.email || 'Not provided'}
+📅 Report Date: ${new Date().toLocaleDateString()}
+⏰ Report Time: ${new Date().toLocaleTimeString()}
 
-HEALTH SCORES
--------------
-Overall Lifescore: ${user.lifescore || 30}%
-BMI Score: ${bmiScore || 'Not provided'}
-RBS Score: ${rstScore || 'Not provided'}
-BP Score: ${bpScore || 'Not provided'}
+📊 HEALTH SCORES
+----------------
+💖 Overall Lifescore: ${user.lifescore || 30}%
+📏 BMI Score: ${bmiScore || 'Not provided'}
+🩸 RBS Score: ${rstScore || 'Not provided'}
+❤️ BP Score: ${bpScore || 'Not provided'}
 
-HEALTH ASSESSMENT
------------------
+🎯 HEALTH ASSESSMENT
+--------------------
 ${getHealthStatus().text}
 ${getHealthStatus().message}
 
 ${questionnaireResults.scores && questionnaireResults.scores.length > 0 ? `
-QUESTIONNAIRE RESULTS
----------------------
-Total Score: ${questionnaireResults.scores.reduce((sum: number, score: number) => sum + score, 0)}/400
+📝 QUESTIONNAIRE RESULTS
+------------------------
+📊 Total Score: ${questionnaireResults.scores.reduce((sum: number, score: number) => sum + score, 0)}/400
 ` : ''}
 
-HEALTH RECOMMENDATIONS
-----------------------
+🔍 DETAILED ANALYSIS
+--------------------
+${getDetailedAnalysis().join('\n')}
+
+💡 HEALTH RECOMMENDATIONS
+-------------------------
 ${getHealthRecommendations().join('\n')}
 
-IMPORTANT NOTES
----------------
-• This report combines your health scores and questionnaire results
-• Results are for informational purposes only
-• Regular health checkups are recommended
-• Consult healthcare professionals for medical advice
+📋 IMPORTANT NOTES
+------------------
+🏥 This report combines your health scores and questionnaire results
+✅ Results are for informational purposes only
+🩺 Regular health checkups are recommended
+👨‍⚕️ Consult healthcare professionals for medical advice
 
 Generated by: Asiri Health Lifescore System
         `.trim();
@@ -348,24 +471,25 @@ Generated by: Asiri Health Lifescore System
 
         if (bmiScore) {
             const bmi = parseFloat(bmiScore);
-            if (bmi < 18.5) analysis.push('BMI indicates underweight - Consider nutritional consultation');
-            else if (bmi >= 18.5 && bmi <= 24.9) analysis.push('BMI is in healthy range - Maintain current weight');
-            else if (bmi >= 25 && bmi <= 29.9) analysis.push('BMI indicates overweight - Consider weight management');
-            else analysis.push('BMI indicates obesity - Medical consultation recommended');
+            if (bmi < 18.5) analysis.push('BMI indicates underweight - Consider nutritional consultation and balanced diet');
+            else if (bmi >= 18.5 && bmi <= 24.9) analysis.push('BMI is in healthy range - Maintain current weight with regular exercise');
+            else if (bmi >= 25 && bmi <= 29.9) analysis.push('BMI indicates overweight - Consider weight management program');
+            else analysis.push('BMI indicates obesity - Medical consultation and lifestyle changes recommended');
         }
 
         if (rstScore) {
             const rbs = parseFloat(rstScore);
-            if (rbs < 100) analysis.push('RBS levels are normal - Maintain healthy diet');
-            else if (rbs >= 100 && rbs <= 125) analysis.push('RBS indicates pre-diabetes - Monitor sugar intake');
-            else analysis.push('RBS indicates diabetes risk - Medical consultation advised');
+            if (rbs < 100) analysis.push('RBS levels are normal - Maintain healthy diet and regular monitoring');
+            else if (rbs >= 100 && rbs <= 125) analysis.push('RBS indicates pre-diabetes - Monitor sugar intake and increase physical activity');
+            else analysis.push('RBS indicates diabetes risk - Immediate medical consultation and dietary changes advised');
         }
 
         if (bpScore) {
-            analysis.push(`Blood Pressure: ${bpScore} - Regular monitoring recommended`);
+            analysis.push(`Blood Pressure: ${bpScore} - Regular monitoring and lifestyle modifications recommended`);
         }
 
-        analysis.push(`Overall Lifescore ${user.lifescore}% indicates ${getHealthStatus().text.toLowerCase()}`);
+        const status = getHealthStatus();
+        analysis.push(`Overall Lifescore ${user.lifescore}% - ${status.message}`);
 
         return analysis;
     };
@@ -437,17 +561,17 @@ Generated by: Asiri Health Lifescore System
                             </head>
                             <body>
                                 <div class="container">
-                                    <h2>Comprehensive Health Report</h2>
-                                    <p><strong>Name:</strong> ${user.title} ${user.name}</p>
-                                    <p><strong>Your health scores:</strong></p>
+                                    <h2>🏥 Comprehensive Health Report</h2>
+                                    <p><strong>👤 Name:</strong> ${user.title} ${user.name}</p>
+                                    <p><strong>📊 Your health scores:</strong></p>
                                     <ul>
-                                        <li>Lifescore: ${user.lifescore}%</li>
-                                        <li>BMI: ${bmiScore}</li>
-                                        <li>RBS: ${rstScore}</li>
-                                        <li>BP: ${bpScore}</li>
+                                        <li>💖 Lifescore: ${user.lifescore}%</li>
+                                        <li>📏 BMI: ${bmiScore}</li>
+                                        <li>🩸 RBS: ${rstScore}</li>
+                                        <li>❤️ BP: ${bpScore}</li>
                                     </ul>
-                                    <p><strong>Status:</strong> ${getHealthStatus().text}</p>
-                                    <p>Thank you for using Asiri Health Lifescore!</p>
+                                    <p><strong>🎯 Status:</strong> ${getHealthStatus().text}</p>
+                                    <p>Thank you for using Asiri Health Lifescore! 🌟</p>
                                     <p>Best regards,<br>Asiri Health Team</p>
                                 </div>
                             </body>
@@ -481,22 +605,33 @@ Generated by: Asiri Health Lifescore System
 
         const message = `🏥 *ASIRI HEALTH - Comprehensive Health Report*
 
-👤 *Patient:* ${user.title} ${user.name}
+👤 *Patient Information:*
+━━━━━━━━━━━━━━━━━━━━━━
+🎯 *Name:* ${user.title} ${user.name}
+📧 *Email:* ${user.email || 'Not provided'}
+📅 *Report Date:* ${new Date().toLocaleDateString()}
+⏰ *Report Time:* ${new Date().toLocaleTimeString()}
 
-📊 *Health Scores:*
-━━━━━━━━━━━━━━━━
-💪 *Lifescore:* ${user.lifescore}%
+📊 *Health Scores Summary:*
+━━━━━━━━━━━━━━━━━━━━━━
+💖 *Lifescore:* ${user.lifescore}%
 📏 *BMI Score:* ${bmiScore}
-🫀 *RBS Score:* ${rstScore}
-🩺 *BP Score:* ${bpScore}
-━━━━━━━━━━━━━━━━
+🩸 *RBS Score:* ${rstScore}
+❤️ *BP Score:* ${bpScore}
 
-📈 *Health Status:* ${getHealthStatus().text}
+🎯 *Health Assessment:*
+━━━━━━━━━━━━━━━━━━━━━━
+${getHealthStatus().text}
+${getHealthStatus().message}
 
-✅ Comprehensive report generated
-📅 ${new Date().toLocaleDateString()}
+💡 *Key Recommendations:*
+━━━━━━━━━━━━━━━━━━━━━━
+• 🏥 Regular health checkups
+• 🥗 Balanced diet
+• 🏃 Daily exercise
+• 💧 Proper hydration
 
-_Thank you for choosing ASIRI HEALTH_`;
+_Thank you for choosing ASIRI HEALTH_ 🌟`;
 
         const encodedMessage = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
@@ -586,7 +721,7 @@ _Thank you for choosing ASIRI HEALTH_`;
                             <div className="flex items-center justify-center space-x-2">
                                 <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                                 <span className="text-blue-800 font-semibold text-sm">
-                                    Generating Comprehensive Health Report...
+                                    🏥 Generating Comprehensive Health Report...
                                 </span>
                             </div>
                             <p className="text-blue-600 text-xs mt-1">
@@ -600,7 +735,7 @@ _Thank you for choosing ASIRI HEALTH_`;
                             <div className="flex items-center justify-center space-x-2">
                                 <span className="text-green-600 text-lg">✅</span>
                                 <span className="text-green-800 font-semibold text-sm">
-                                    Comprehensive Report Downloaded!
+                                    📄 Comprehensive Report Downloaded!
                                 </span>
                             </div>
                             <p className="text-green-600 text-xs mt-1">
@@ -618,16 +753,16 @@ _Thank you for choosing ASIRI HEALTH_`;
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="white" className="mr-2">
                                 <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                             </svg>
-                            Refresh User Data
+                            🔄 Refresh User Data
                         </button>
                         {user.name && (
                             <p className="text-xs text-gray-600 mt-1">
-                                Loaded: {user.title} {user.name}
+                                👤 Loaded: {user.title} {user.name}
                             </p>
                         )}
                         {!user.name && dataLoaded && (
                             <p className="text-xs text-yellow-600 mt-1">
-                                No user data found. Please register first.
+                                ⚠️ No user data found. Please register first.
                             </p>
                         )}
                     </div>
@@ -692,7 +827,7 @@ _Thank you for choosing ASIRI HEALTH_`;
                         </div>
 
                         <p className="text-xs text-gray-600 mt-2 italic">
-                            {user.lifescore >= 60 ? 'Good health status' : 'Focus on improving your health'}
+                            {user.lifescore >= 60 ? '✅ Good health status' : '🎯 Focus on improving your health'}
                         </p>
                     </div>
 
@@ -700,13 +835,13 @@ _Thank you for choosing ASIRI HEALTH_`;
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                             <span>🏥</span>
-                            <span>Health Scores {bmiScore && rstScore && bpScore && '✓'}</span>
+                            <span>Health Scores {bmiScore && rstScore && bpScore && '✅'}</span>
                         </h3>
 
                         <div className="space-y-3">
                             <div>
                                 <label htmlFor="bmi" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    💪 BMI Score
+                                    📏 BMI Score
                                 </label>
                                 <input
                                     id="bmi"
@@ -720,7 +855,7 @@ _Thank you for choosing ASIRI HEALTH_`;
 
                             <div>
                                 <label htmlFor="rst" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    🫀 RBS Score
+                                    🩸 RBS Score
                                 </label>
                                 <input
                                     id="rst"
@@ -734,7 +869,7 @@ _Thank you for choosing ASIRI HEALTH_`;
 
                             <div>
                                 <label htmlFor="bp" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    🩺 BP Score
+                                    ❤️ BP Score
                                 </label>
                                 <input
                                     id="bp"
@@ -771,8 +906,11 @@ _Thank you for choosing ASIRI HEALTH_`;
 
                         <button
                             onClick={handleSendEmail}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors shadow-md"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors shadow-md flex items-center justify-center gap-2"
                         >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                            </svg>
                             📧 Send Email Report
                         </button>
 
@@ -783,7 +921,7 @@ _Thank you for choosing ASIRI HEALTH_`;
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="white" className="mr-2">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                             </svg>
-                            Share on WhatsApp
+                            💬 Share on WhatsApp
                         </button>
                     </div>
 
@@ -797,4 +935,3 @@ _Thank you for choosing ASIRI HEALTH_`;
 };
 
 export default HealthCardPage;
-
