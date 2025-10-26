@@ -13,7 +13,7 @@ const HealthCardPage = () => {
         title: 'Mr.',
         name: '',
         email: '',
-        lifescore: 30,
+        lifescore: 30, // Default score
     });
     const [bmiScore, setBmiScore] = useState('');
     const [rstScore, setRstScore] = useState('');
@@ -23,6 +23,7 @@ const HealthCardPage = () => {
 
     useEffect(() => {
         loadUserData();
+        loadQuizScore();
     }, []);
 
     const loadUserData = () => {
@@ -49,16 +50,49 @@ const HealthCardPage = () => {
         }
     };
 
+    // Load quiz score from localStorage
+    const loadQuizScore = () => {
+        try {
+            const quizResults = localStorage.getItem('quizResults');
+            if (quizResults) {
+                const results = JSON.parse(quizResults);
+                console.log('Loaded quiz results:', results);
+
+                if (results.percentage) {
+                    setUser(prev => ({
+                        ...prev,
+                        lifescore: results.percentage
+                    }));
+
+                    // Update user in localStorage with new lifescore
+                    const savedUser = localStorage.getItem('user');
+                    if (savedUser) {
+                        const userData = JSON.parse(savedUser);
+                        localStorage.setItem('user', JSON.stringify({
+                            ...userData,
+                            lifescore: results.percentage
+                        }));
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading quiz score:', error);
+        }
+    };
+
     const refreshUserData = () => {
         loadUserData();
+        loadQuizScore(); // Also refresh quiz score
     };
 
     const handleSendEmail = () => {
         if (!user.email) {
+            alert('Please enter user email first');
             return;
         }
 
         if (!rstScore || !bpScore || !bmiScore) {
+            alert('Please enter all health scores first');
             return;
         }
 
@@ -68,7 +102,7 @@ const HealthCardPage = () => {
             name: user.name || 'User',
             email: user.email,
             title: user.title,
-            message: `Your scores are: RST - ${rstScore}, BP - ${bpScore}, BMI - ${bmiScore}.`
+            message: `Your scores are: RST - ${rstScore}, BP - ${bpScore}, BMI - ${bmiScore}. Lifescore: ${user.lifescore}%`
         };
 
         const SERVICE_ID = 'service_g9ud6tf';
@@ -78,39 +112,39 @@ const HealthCardPage = () => {
         emailjs
             .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
             .then(() => {
-
+                alert('Email sent successfully!');
                 setRstScore('');
                 setBpScore('');
                 setBmiScore('');
             })
             .catch((error) => {
                 console.error('Email sending failed:', error);
-
+                alert('Failed to send email. Please try again.');
             });
     };
 
     const sendToWhatsApp = () => {
         if (!bmiScore || !rstScore || !bpScore) {
-
+            alert('Please enter all health scores first');
             return;
         }
 
-        const message = `🏥 *ASIRI HEALTH - Health Card Report*
+        const message = `🏥 ASIRI HEALTH - Health Card Report
 
-👤 *Patient:* ${user.title} ${user.name}
+👤 Patient: ${user.title} ${user.name}
 
-📊 *Health Scores:*
+📊 Health Scores:
 ━━━━━━━━━━━━━━━━
-💪 *Lifescore:* ${user.lifescore}%
-📏 *BMI Score:* ${bmiScore}
-🫀 *RST Score:* ${rstScore}
-🩺 *BP Score:* ${bpScore}
+💪 Lifescore: ${user.lifescore}%
+📏 BMI Score: ${bmiScore}
+🫀 RST Score: ${rstScore}
+🩺 BP Score: ${bpScore}
 ━━━━━━━━━━━━━━━━
 
 ✅ Report generated successfully
 📅 ${new Date().toLocaleDateString()}
 
-_Thank you for choosing ASIRI HEALTH_`;
+Thank you for choosing ASIRI HEALTH`;
 
         const encodedMessage = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
@@ -160,6 +194,28 @@ _Thank you for choosing ASIRI HEALTH_`;
     const radius = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference * (1 - progress);
+
+    // Get health message based on lifescore
+    const getHealthMessage = () => {
+        if (user.lifescore >= 80) return {
+            text: 'Excellent! Keep it up!',
+            emoji: '🌟'
+        };
+        if (user.lifescore >= 60) return {
+            text: 'Good job!',
+            emoji: '👍'
+        };
+        if (user.lifescore >= 40) return {
+            text: 'Fair',
+            emoji: '💪'
+        };
+        return {
+            text: 'Needs work',
+            emoji: '🎯'
+        };
+    };
+
+    const healthMessage = getHealthMessage();
 
     return (
         <div style={{
@@ -276,8 +332,19 @@ _Thank you for choosing ASIRI HEALTH_`;
                             </svg>
                         </div>
 
-                        <p className="text-xs text-gray-600 mt-2 italic">
-                            {user.lifescore >= 60 ? 'Good health status' : 'Focus on improving your health'}
+                        {/* Health Status Message */}
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="text-2xl mb-1">{healthMessage.emoji}</div>
+                            <p className="text-sm font-semibold text-gray-800 mb-1">
+                                {healthMessage.text}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                                {user.lifescore >= 60 ? 'Good health status' : 'Focus on improving your health'}
+                            </p>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                            Based on your health assessment
                         </p>
                     </div>
 
@@ -285,7 +352,7 @@ _Thank you for choosing ASIRI HEALTH_`;
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                             <span>🏥</span>
-                            <span>Health Scores</span>
+                            <span>Additional Health Scores</span>
                         </h3>
 
                         <div className="space-y-3">

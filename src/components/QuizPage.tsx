@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 
-// Initialize EmailJS - Using the credentials from 2nd code
+// Initialize EmailJS
 try {
-    emailjs.init('GT67rJ-Rr-55GEzmS'); // Using public key from 2nd code
+    emailjs.init('GT67rJ-Rr-55GEzmS');
 } catch (error) {
     console.error('Failed to initialize EmailJS:', error);
 }
 
-// Add your logo import - adjust the path according to your project structure
 import asiriLogo from '../assets/asiri-logo.png';
 
 const HealthQuestionnaire = () => {
@@ -27,24 +26,16 @@ const HealthQuestionnaire = () => {
     useEffect(() => {
         const main = document.querySelector('main');
         if (main) {
-            // Store original styles
-            const originalPadding = main.style.padding;
-            const originalMargin = main.style.margin;
-
-            // Remove all padding and margin
             main.style.padding = '0';
             main.style.margin = '0';
-
-            // Also remove from body and html for complete control
             document.body.style.padding = '0';
             document.body.style.margin = '0';
             document.documentElement.style.padding = '0';
             document.documentElement.style.margin = '0';
 
             return () => {
-                // Restore original styles when component unmounts
-                main.style.padding = originalPadding;
-                main.style.margin = originalMargin;
+                main.style.padding = '';
+                main.style.margin = '';
                 document.body.style.padding = '';
                 document.body.style.margin = '';
                 document.documentElement.style.padding = '';
@@ -113,13 +104,12 @@ const HealthQuestionnaire = () => {
             setSelectedOption(null);
         } else {
             setShowResults(true);
-
             const totalScore = newScores.reduce((sum, score) => sum + score, 0);
             await sendQuizResultsEmail(totalScore);
         }
     };
 
-    // Email sending function from 2nd code
+    // Email sending function
     const sendQuizResultsEmail = async (totalScore: number) => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         if (!user?.email) {
@@ -162,13 +152,11 @@ const HealthQuestionnaire = () => {
             setShowAuthPopup(false);
             setAuthKey('');
             setAuthError(false);
-            sendQuizResultsEmail(totalScore);
             navigate('/expert');
         } else {
             setAuthError(true);
         }
     };
-
 
     const getHealthMessage = () => {
         if (percentage >= 80) return {
@@ -219,7 +207,6 @@ const HealthQuestionnaire = () => {
 
         const { width, height } = sizes[size] || sizes.medium;
 
-        // If logo fails to load, show enhanced text version with white background
         if (logoError) {
             return (
                 <div style={{
@@ -286,8 +273,7 @@ const HealthQuestionnaire = () => {
                 background: 'white',
                 borderRadius: '20px',
                 boxShadow: '0 10px 30px rgba(7, 41, 75, 0.2)',
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-                transition: 'all 0.3s ease'
+                border: '2px solid rgba(255, 255, 255, 0.8)'
             }}>
                 <img
                     src={asiriLogo}
@@ -295,24 +281,9 @@ const HealthQuestionnaire = () => {
                     style={{
                         width: width,
                         height: height,
-                        objectFit: 'contain',
-                        transition: 'transform 0.3s ease'
+                        objectFit: 'contain'
                     }}
                     onError={() => setLogoError(true)}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                            parent.style.boxShadow = '0 15px 40px rgba(7, 41, 75, 0.3)';
-                        }
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                            parent.style.boxShadow = '0 10px 30px rgba(7, 41, 75, 0.2)';
-                        }
-                    }}
                 />
             </div>
         );
@@ -383,9 +354,30 @@ const HealthQuestionnaire = () => {
         );
     };
 
-    if (showResults) {
+    // Results Component with your requested part
+    const ResultsComponent = () => {
         const message = getHealthMessage();
         const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // Save quiz results to localStorage - THIS IS YOUR REQUESTED PART
+        useEffect(() => {
+            const quizResults = {
+                percentage: percentage,
+                totalScore: totalScore,
+                maxScore: maxScore,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('quizResults', JSON.stringify(quizResults));
+
+            // Also update user lifescore
+            if (user) {
+                const updatedUser = {
+                    ...user,
+                    lifescore: percentage
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }, [percentage, totalScore, maxScore, user]);
 
         return (
             <div style={{
@@ -523,6 +515,7 @@ const HealthQuestionnaire = () => {
                         </p>
                     </div>
 
+                    {/* Only Meet Health Experts button remains */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                         <button
                             onClick={() => setShowAuthPopup(true)}
@@ -687,6 +680,10 @@ const HealthQuestionnaire = () => {
                 )}
             </div>
         );
+    };
+
+    if (showResults) {
+        return <ResultsComponent />;
     }
 
     const currentQ = questions[currentQuestion];
