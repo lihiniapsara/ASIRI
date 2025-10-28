@@ -35,12 +35,15 @@ export const deleteUser = async (userId: string) => {
 export const getUsers = async (): Promise<{success: boolean; data?: User[]; error?: any}> => {
   try {
     const querySnapshot = await getDocs(usersCollectionRef);
-    const users: Users[] = querySnapshot.docs.map(doc => {
+    const users: User[] = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
+        id: doc.id, // Document eka ID eka
+        title: data.title || '', // Title eka thiyenawa nam eka, nethnam empty string ekak
         name: data.name || '',
         phone: data.phone || '',
-        email: data.email || ''
+        email: data.email || '',
+        createdAt: data.createdAt || null
       };
     });
 
