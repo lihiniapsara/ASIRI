@@ -4,3 +4,9 @@ export interface User {
   phone: string;
   email: string;
 }
+
+export interface Users {
+  name: string;
+  phone: string;
+  email: string;
+}

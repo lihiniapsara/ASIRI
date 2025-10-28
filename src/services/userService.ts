@@ -1,5 +1,5 @@
 // userService.ts
-import type {User} from "../types/User.ts";
+import type {User, Users} from "../types/User.ts";
 import { db } from "../../firebase";
 import { collection, addDoc, getDocs, doc, deleteDoc } from "firebase/firestore";
 
@@ -32,27 +32,15 @@ export const deleteUser = async (userId: string) => {
   }
 };
 
-// services/userService.ts එකේ
-// services/userService.ts
-export interface User {
-  title: "Mr." | "Mrs." | "Miss.";
-  name: string;
-  phone: string;
-  email: string;
-}
-
 export const getUsers = async (): Promise<{success: boolean; data?: User[]; error?: any}> => {
   try {
     const querySnapshot = await getDocs(usersCollectionRef);
-    const users: User[] = querySnapshot.docs.map(doc => {
+    const users: Users[] = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
-        id: doc.id,
-        title: data.title || 'Mr.', // ✅ title property add කරා
         name: data.name || '',
         phone: data.phone || '',
-        email: data.email || '',
-        createdAt: data.createdAt || null
+        email: data.email || ''
       };
     });
 
