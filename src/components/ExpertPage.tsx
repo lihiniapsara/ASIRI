@@ -1,430 +1,688 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import emailjs from '@emailjs/browser';
-import asiriLogo from '../assets/asiri-logo.png';
+import { getUsers } from '../services/userService';
 
-const PRIMARY_BLUE = '#1591cbff';
-const LIGHT_BLUE = '#57bef6ff';
-const VERY_LIGHT_BLUE = '#a8e0ffff';
+const AdminUsersPage = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [password, setPassword] = useState('');
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [usersPerPage] = useState(30);
 
-type Size = 'small' | 'medium' | 'large';
+    // Asiri Health colors
+    const PRIMARY_BLUE = '#0071bc';
+    const LIGHT_BLUE = '#2ea7e0';
+    const VERY_LIGHT_BLUE = '#b3e5ff';
 
-const HealthCardPage = () => {
-    const [user, setUser] = useState({
-        title: 'Mr.',
-        name: '',
-        email: '',
-        lifescore: 30,
-    });
-    const [bmiScore, setBmiScore] = useState('');
-    const [rstScore, setRstScore] = useState('');
-    const [bpScore, setBpScore] = useState('');
-    const [logoError, setLogoError] = useState(false);
-    const [dataLoaded, setDataLoaded] = useState(false);
+    const ADMIN_PASSWORD = '2025';
 
-    const navigate = useNavigate();
-
+    // Check if user is already authenticated (localStorage එකෙන්)
     useEffect(() => {
-        loadUserData();
-        loadQuizScore();
+        const savedAuth = localStorage.getItem('adminAuthenticated');
+        if (savedAuth === 'true') {
+            setIsAuthenticated(true);
+            loadUsers();
+        } else {
+            setLoading(false);
+        }
     }, []);
 
-    const handleAddNewUser = () => {
-        navigate("/");
-    };
-
-    const loadUserData = () => {
+    // Load users
+    const loadUsers = async () => {
         try {
-            const savedUser = localStorage.getItem('user');
-            if (savedUser) {
-                const userData = JSON.parse(savedUser);
-                console.log('Loaded user data:', userData);
-                setUser({
-                    ...user,
-                    title: userData.title || 'Mr.',
-                    name: userData.name || '',
-                    email: userData.email || '',
-                    lifescore: userData.lifescore || 30,
-                });
-                setDataLoaded(true);
+            setLoading(true);
+            const result = await getUsers();
+
+            if (result.success) {
+                setUsers(result.data);
+                setError(null);
             } else {
-                console.log('No user data found in local storage');
-                setDataLoaded(true);
+                setError('Failed to load users');
             }
-        } catch (error) {
-            console.error('Error loading user data:', error);
-            setDataLoaded(true);
+        } catch (err) {
+            setError('Error occurred while loading users');
+            console.error('Error loading users:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const loadQuizScore = () => {
-        try {
-            const quizResults = localStorage.getItem('quizResults');
-            if (quizResults) {
-                const results = JSON.parse(quizResults);
-                console.log('Loaded quiz results:', results);
+    // Handle login
+    const handleLogin = (e) => {
+        e.preventDefault();
+        if (password === ADMIN_PASSWORD) {
+            setIsAuthenticated(true);
+            localStorage.setItem('adminAuthenticated', 'true');
+            loadUsers();
+        } else {
+            alert('Invalid password!');
+            setPassword('');
+        }
+    };
 
-                if (results.percentage) {
-                    setUser(prev => ({
-                        ...prev,
-                        lifescore: results.percentage
-                    }));
+    // Handle logout
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        localStorage.removeItem('adminAuthenticated');
+        setPassword('');
+    };
 
-                    const savedUser = localStorage.getItem('user');
-                    if (savedUser) {
-                        const userData = JSON.parse(savedUser);
-                        localStorage.setItem('user', JSON.stringify({
-                            ...userData,
-                            lifescore: results.percentage
-                        }));
-                    }
-                }
+    // Search filter
+    const filteredUsers = users.filter(user =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone?.includes(searchTerm)
+    );
+
+    // Pagination
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+    // Page numbers for pagination
+    const getPageNumbers = () => {
+        const pageNumbers = [];
+        const maxPagesToShow = 5;
+
+        if (totalPages <= maxPagesToShow) {
+            for (let i = 1; i <= totalPages; i++) {
+                pageNumbers.push(i);
             }
-        } catch (error) {
-            console.error('Error loading quiz score:', error);
+        } else {
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+            }
         }
+        return pageNumbers;
     };
 
-    const handleSendEmail = () => {
-        if (!user.email) {
-           // alert('Please enter user email first');
-            return;
-        }
-
-        if (!rstScore || !bpScore || !bmiScore) {
-           // alert('Please enter all health scores first');
-            return;
-        }
-
-        console.log(user);
-
-        const templateParams = {
-            name: user.name || 'User',
-            email: user.email,
-            title: user.title,
-            message: `Your scores are:\n\nRST: ${rstScore}\nBP: ${bpScore}\nBMI: ${bmiScore}\nLifescore: ${user.lifescore}%`
-        };
-
-        const SERVICE_ID = 'service_g9ud6tf';
-        const TEMPLATE_ID = 'template_10anx1u';
-        const PUBLIC_KEY = 'GT67rJ-Rr-55GEzmS';
-
-        emailjs
-            .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
-            .then(() => {
-               // alert('Email sent successfully!');
-                setRstScore('');
-                setBpScore('');
-                setBmiScore('');
-            })
-            .catch((error) => {
-                console.error('Email sending failed:', error);
-               // alert('Failed to send email. Please try again.');
-            });
+    // Refresh button
+    const handleRefresh = () => {
+        loadUsers();
+        setCurrentPage(1);
     };
 
-    const sendToWhatsApp = () => {
-        if (!bmiScore || !rstScore || !bpScore) {
-           // alert('Please enter all health scores first');
-            return;
+    // Format phone number
+    const formatPhone = (phone) => {
+        if (!phone) return '';
+        if (phone.startsWith('07') && phone.length === 10) {
+            return `+94${phone.substring(1)}`;
         }
-
-        const message = `🏥 ASIRI HEALTH - Health Card Report
-
-👤 Patient: ${user.title} ${user.name}
-
-📊 Health Scores:
-━━━━━━━━━━━━━━━━
-💪 Lifescore: ${user.lifescore}%
-📏 BMI Score: ${bmiScore}
-🫀 RST Score: ${rstScore}
-🩺 BP Score: ${bpScore}
-━━━━━━━━━━━━━━━━
-
-✅ Report generated successfully
-📅 ${new Date().toLocaleDateString()}
-
-Thank you for choosing ASIRI HEALTH`;
-
-        const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-
-        window.open(whatsappUrl, '_blank');
+        return phone;
     };
 
-    const Logo = ({ size = 'medium' }: { size?: Size }) => {
-        const sizes: Record<Size, { width: number; height: string }> = {
-            small: { width: 100, height: 'auto' },
-            medium: { width: 140, height: 'auto' },
-            large: { width: 180, height: 'auto' }
-        };
+    // Calculate serial number for each user (1,2,3,...)
+    const getSerialNumber = (index) => {
+        return (currentPage - 1) * usersPerPage + index + 1;
+    };
 
-        const { width, height } = sizes[size] || sizes.medium;
-
-        if (logoError) {
-            return (
-                <div className="text-center text-white font-bold">
-                    <div className="text-xl tracking-wide mb-1">ASIRI</div>
-                    <div className="text-md">HEALTH</div>
-                    <div className="text-xs font-normal opacity-90">Lifescore</div>
-                </div>
-            );
-        }
-
+    // Login Form
+    if (!isAuthenticated) {
         return (
-            <div className="flex justify-center items-center mx-auto py-2">
-                <img
-                    src={asiriLogo}
-                    alt="Asiri Health Lifescore"
-                    style={{
-                        width: width,
-                        height: height,
-                        objectFit: 'contain'
-                    }}
-                    onError={() => setLogoError(true)}
-                />
+            <div style={{
+                minHeight: '100vh',
+                background: `linear-gradient(180deg, ${PRIMARY_BLUE} 0%, ${LIGHT_BLUE} 50%, ${VERY_LIGHT_BLUE} 100%)`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '20px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+                <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '40px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    width: '100%',
+                    maxWidth: '400px'
+                }}>
+                    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                        <h1 style={{
+                            fontSize: '28px',
+                            fontWeight: 'bold',
+                            color: PRIMARY_BLUE,
+                            margin: '0 0 10px 0'
+                        }}>
+                            Admin Access
+                        </h1>
+                        <p style={{ color: '#666', margin: '0' }}>
+                            Enter password to continue
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleLogin}>
+                        <div style={{ marginBottom: '20px' }}>
+                            <input
+                                type="password"
+                                placeholder="Enter admin password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    border: `1px solid #ddd`,
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    boxSizing: 'border-box'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = PRIMARY_BLUE}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                backgroundColor: PRIMARY_BLUE,
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = LIGHT_BLUE}
+                            onMouseOut={(e) => e.target.style.backgroundColor = PRIMARY_BLUE}
+                        >
+                            Login
+                        </button>
+                    </form>
+                </div>
             </div>
         );
-    };
+    }
 
-    const progress = user.lifescore / 100;
-    const CIRCLE_SIZE = 100;
-    const STROKE_WIDTH = 10;
-    const radius = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference * (1 - progress);
-
-    const getHealthMessage = () => {
-        if (user.lifescore >= 80) return {
-            text: 'Excellent! Keep it up!',
-            emoji: '🌟'
-        };
-        if (user.lifescore >= 60) return {
-            text: 'Good job!',
-            emoji: '👍'
-        };
-        if (user.lifescore >= 40) return {
-            text: 'Fair',
-            emoji: '💪'
-        };
-        return {
-            text: 'Needs work',
-            emoji: '🎯'
-        };
-    };
-
-    const healthMessage = getHealthMessage();
+    if (loading) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '400px',
+                fontSize: '18px',
+                color: PRIMARY_BLUE
+            }}>
+                Loading users...
+            </div>
+        );
+    }
 
     return (
         <div style={{
             minHeight: '100vh',
-            width: '100%',
             background: `linear-gradient(180deg, ${PRIMARY_BLUE} 0%, ${LIGHT_BLUE} 50%, ${VERY_LIGHT_BLUE} 100%)`,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '0',
-            margin: '0',
-            boxSizing: 'border-box',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            right: '0',
-            bottom: '0',
-            overflow: 'auto'
+            padding: '20px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
-            <div className="w-full flex flex-col flex-1">
-                {/* Header with Logo - White Background */}
-                <div className="relative bg-white text-blue-800 p-4 flex-shrink-0">
-                    <div className="absolute top-1 right-3 w-12 h-12 rounded-full bg-blue-100" />
-                    <div className="absolute -bottom-3 left-1 w-16 h-16 rounded-full bg-blue-50" />
+            <div style={{
+                maxWidth: '1400px',
+                margin: '0 auto',
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+                {/* Header */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '24px',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                }}>
+                    <div>
+                        <h1 style={{
+                            fontSize: '28px',
+                            fontWeight: 'bold',
+                            color: PRIMARY_BLUE,
+                            margin: '0'
+                        }}>
+                            Users Management
+                        </h1>
+                        <p style={{ color: '#666', margin: '4px 0 0 0' }}>
+                            Manage all registered users
+                        </p>
+                    </div>
 
-                    {/* Logo */}
-                    <div className="relative z-10">
-                        <Logo size="medium" />
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {/* Search Input */}
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder="Search users..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                style={{
+                                    padding: '8px 12px 8px 36px',
+                                    border: `1px solid #ddd`,
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    width: '250px',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = PRIMARY_BLUE}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                            />
+                            <span style={{
+                                position: 'absolute',
+                                left: '12px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: '#999'
+                            }}>
+                                🔍
+                            </span>
+                        </div>
+
+                        {/* Refresh Button */}
+                        <button
+                            onClick={handleRefresh}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 16px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                backgroundColor: PRIMARY_BLUE,
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = LIGHT_BLUE}
+                            onMouseOut={(e) => e.target.style.backgroundColor = PRIMARY_BLUE}
+                        >
+                            <span>🔄</span>
+                            Refresh
+                        </button>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 16px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '6px',
+                                backgroundColor: 'transparent',
+                                color: PRIMARY_BLUE,
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                                e.target.style.backgroundColor = PRIMARY_BLUE;
+                                e.target.style.color = 'white';
+                            }}
+                            onMouseOut={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
+                                e.target.style.color = PRIMARY_BLUE;
+                            }}
+                        >
+                            <span>🚪</span>
+                            Logout
+                        </button>
                     </div>
                 </div>
 
-                {/* Main Content - Scrollable area */}
-                <div className="flex-1 p-4 space-y-4 overflow-y-auto w-full max-w-md mx-auto">
-                    {/* Add New User Button - Centered */}
-                    <div className="text-center mb-2">
+                {/* Error Message */}
+                {error && (
+                    <div style={{
+                        backgroundColor: '#fee',
+                        border: '1px solid #fcc',
+                        color: '#c33',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <span>{error}</span>
                         <button
-                            onClick={handleAddNewUser}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-colors shadow-md flex items-center justify-center mx-auto"
+                            onClick={() => setError(null)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#c33',
+                                cursor: 'pointer',
+                                fontSize: '16px'
+                            }}
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white" className="mr-2">
-                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                            </svg>
-                            Add New User
+                            ×
                         </button>
                     </div>
+                )}
 
-                    {user.name && (
-                        <p className="text-xs text-gray-600 text-center">
-                            Current User: {user.title} {user.name}
-                        </p>
+                {/* Users Table */}
+                <div style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '20px'
+                }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            fontSize: '14px',
+                            minWidth: '600px'
+                        }}>
+                            <thead>
+                            <tr style={{
+                                backgroundColor: '#f8f9fa',
+                                borderBottom: '2px solid #e0e0e0'
+                            }}>
+                                <th style={{
+                                    padding: '12px 16px',
+                                    textAlign: 'center',
+                                    fontWeight: '600',
+                                    color: PRIMARY_BLUE,
+                                    borderRight: '1px solid #e0e0e0',
+                                    width: '80px'
+                                }}>
+                                    No.
+                                </th>
+                                <th style={{
+                                    padding: '12px 16px',
+                                    textAlign: 'left',
+                                    fontWeight: '600',
+                                    color: PRIMARY_BLUE,
+                                    borderRight: '1px solid #e0e0e0',
+                                    width: '250px'
+                                }}>
+                                    Name
+                                </th>
+                                <th style={{
+                                    padding: '12px 16px',
+                                    textAlign: 'left',
+                                    fontWeight: '600',
+                                    color: PRIMARY_BLUE,
+                                    borderRight: '1px solid #e0e0e0',
+                                    width: '150px'
+                                }}>
+                                    Phone
+                                </th>
+                                <th style={{
+                                    padding: '12px 16px',
+                                    textAlign: 'left',
+                                    fontWeight: '600',
+                                    color: PRIMARY_BLUE,
+                                    borderRight: '1px solid #e0e0e0',
+                                    width: '250px'
+                                }}>
+                                    Email
+                                </th>
+                                <th style={{
+                                    padding: '12px 16px',
+                                    textAlign: 'left',
+                                    fontWeight: '600',
+                                    color: PRIMARY_BLUE,
+                                    width: '120px'
+                                }}>
+                                    Registered Date
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {currentUsers.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan="5"
+                                        style={{
+                                            padding: '40px',
+                                            textAlign: 'center',
+                                            color: '#666',
+                                            fontSize: '16px'
+                                        }}
+                                    >
+                                        {searchTerm ? 'No users found matching your search' : 'No users registered yet'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentUsers.map((user, index) => (
+                                    <tr
+                                        key={user.id}
+                                        style={{
+                                            backgroundColor: index % 2 === 0 ? '#fff' : '#fafafa',
+                                            borderBottom: '1px solid #e0e0e0',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#f0f7ff';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#fff' : '#fafafa';
+                                        }}
+                                    >
+                                        <td style={{
+                                            padding: '12px 16px',
+                                            borderRight: '1px solid #e0e0e0',
+                                            textAlign: 'center',
+                                            fontWeight: '600',
+                                            color: PRIMARY_BLUE
+                                        }}>
+                                            {getSerialNumber(index)}
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 16px',
+                                            borderRight: '1px solid #e0e0e0',
+                                            fontWeight: '500'
+                                        }}>
+                                            {user.name || 'N/A'}
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 16px',
+                                            borderRight: '1px solid #e0e0e0',
+                                            fontFamily: 'monospace'
+                                        }}>
+                                            {formatPhone(user.phone) || 'N/A'}
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 16px',
+                                            borderRight: '1px solid #e0e0e0'
+                                        }}>
+                                            {user.email || 'N/A'}
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 16px',
+                                            color: '#666',
+                                            fontSize: '13px'
+                                        }}>
+                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '20px',
+                        flexWrap: 'wrap'
+                    }}>
+                        <button
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            style={{
+                                padding: '8px 12px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '4px',
+                                backgroundColor: currentPage === 1 ? '#f8f9fa' : 'white',
+                                color: currentPage === 1 ? '#6c757d' : PRIMARY_BLUE,
+                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            First
+                        </button>
+
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            style={{
+                                padding: '8px 12px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '4px',
+                                backgroundColor: currentPage === 1 ? '#f8f9fa' : 'white',
+                                color: currentPage === 1 ? '#6c757d' : PRIMARY_BLUE,
+                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Previous
+                        </button>
+
+                        {getPageNumbers().map(number => (
+                            <button
+                                key={number}
+                                onClick={() => setCurrentPage(number)}
+                                style={{
+                                    padding: '8px 12px',
+                                    border: `1px solid ${PRIMARY_BLUE}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: currentPage === number ? PRIMARY_BLUE : 'white',
+                                    color: currentPage === number ? 'white' : PRIMARY_BLUE,
+                                    cursor: 'pointer',
+                                    fontWeight: currentPage === number ? 'bold' : 'normal',
+                                    fontSize: '14px',
+                                    minWidth: '40px'
+                                }}
+                            >
+                                {number}
+                            </button>
+                        ))}
+
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            style={{
+                                padding: '8px 12px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '4px',
+                                backgroundColor: currentPage === totalPages ? '#f8f9fa' : 'white',
+                                color: currentPage === totalPages ? '#6c757d' : PRIMARY_BLUE,
+                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Next
+                        </button>
+
+                        <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            style={{
+                                padding: '8px 12px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '4px',
+                                backgroundColor: currentPage === totalPages ? '#f8f9fa' : 'white',
+                                color: currentPage === totalPages ? '#6c757d' : PRIMARY_BLUE,
+                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Last
+                        </button>
+                    </div>
+                )}
+
+                {/* Footer Stats */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    color: '#666',
+                    fontSize: '14px',
+                    borderTop: '1px solid #e0e0e0',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                }}>
+                    <div>
+                        Showing <strong>{currentUsers.length}</strong> users on page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                        {searchTerm ? (
+                            <span> (Filtered from <strong>{users.length}</strong> total users)</span>
+                        ) : (
+                            <span> (Total: <strong>{users.length}</strong> users)</span>
                     )}
-                    {!user.name && dataLoaded && (
-                        <p className="text-xs text-yellow-600 text-center">
-                            No user data found. Please register first.
-                        </p>
-                    )}
+                </div>
 
-                    {/* User Info */}
-                    <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-full border-4 border-blue-400 flex items-center justify-center text-2xl shadow-lg">
-                            👤
-                        </div>
-                        <h2 className="text-xl font-bold text-gray-800">
-                            {user.title} {user.name || 'No User Data'}
-                        </h2>
-                        <p className="text-xs text-gray-600">Health Card Member</p>
-                    </div>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <span>
+                            Users per page: <strong>30</strong>
+                        </span>
+                    <button
+                        onClick={() => {
+                            const csvContent = [
+                                ['No.', 'Name', 'Phone', 'Email', 'Registered Date'],
+                                ...filteredUsers.map((user, index) => [
+                                    index + 1,
+                                    user.name || '',
+                                    formatPhone(user.phone) || '',
+                                    user.email || '',
+                                    user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ''
+                                ])
+                            ].map(row => row.join(',')).join('\n');
 
-                    {/* Lifescore Section */}
-                    <div className="bg-white border-2 border-blue-200 p-4 text-center rounded-lg shadow-md">
-                        <p className="text-sm font-bold text-gray-800 mb-3 tracking-wide">
-                            📊 YOUR LIFESCORE
-                        </p>
-
-                        <div className="inline-block">
-                            <svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
-                                <defs>
-                                    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#8800ff" />
-                                        <stop offset="100%" stopColor="#ff5202" />
-                                    </linearGradient>
-                                </defs>
-                                <circle
-                                    cx={CIRCLE_SIZE / 2}
-                                    cy={CIRCLE_SIZE / 2}
-                                    r={radius}
-                                    stroke="#e5e7eb"
-                                    strokeWidth={STROKE_WIDTH}
-                                    fill="none"
-                                />
-                                <circle
-                                    cx={CIRCLE_SIZE / 2}
-                                    cy={CIRCLE_SIZE / 2}
-                                    r={radius}
-                                    stroke="url(#scoreGrad)"
-                                    strokeWidth={STROKE_WIDTH}
-                                    fill="none"
-                                    strokeDasharray={`${circumference} ${circumference}`}
-                                    strokeDashoffset={strokeDashoffset}
-                                    strokeLinecap="round"
-                                    transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${CIRCLE_SIZE / 2})`}
-                                    className="transition-all duration-1000"
-                                />
-                                <text
-                                    x={CIRCLE_SIZE / 2}
-                                    y={CIRCLE_SIZE / 2 + 5}
-                                    fontSize="18"
-                                    fontWeight="bold"
-                                    fill="#1f2937"
-                                    textAnchor="middle"
-                                >
-                                    {user.lifescore}%
-                                </text>
-                            </svg>
-                        </div>
-
-                        {/* Health Status Message */}
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="text-2xl mb-1">{healthMessage.emoji}</div>
-                            <p className="text-sm font-semibold text-gray-800 mb-1">
-                                {healthMessage.text}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                                {user.lifescore >= 60 ? 'Good health status' : 'Focus on improving your health'}
-                            </p>
-                        </div>
-
-                        <p className="text-xs text-gray-500 mt-2 italic">
-                            Based on your health assessment
-                        </p>
-                    </div>
-
-                    {/* Health Scores */}
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <span>🏥</span>
-                            <span>Additional Health Scores</span>
-                        </h3>
-
-                        <div className="space-y-3">
-                            <div>
-                                <label htmlFor="bmi" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    💪 BMI Score
-                                </label>
-                                <input
-                                    id="bmi"
-                                    type="text"
-                                    placeholder="Enter BMI score"
-                                    value={bmiScore}
-                                    onChange={(e) => setBmiScore(e.target.value)}
-                                    className="w-full h-10 border-2 border-blue-200 bg-white rounded-md px-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors text-sm"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="rst" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    🫀 RST Score
-                                </label>
-                                <input
-                                    id="rst"
-                                    type="text"
-                                    placeholder="Enter RST score"
-                                    value={rstScore}
-                                    onChange={(e) => setRstScore(e.target.value)}
-                                    className="w-full h-10 border-2 border-blue-200 bg-white rounded-md px-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors text-sm"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="bp" className="text-xs font-semibold text-gray-800 mb-1 block">
-                                    🩺 BP Score
-                                </label>
-                                <input
-                                    id="bp"
-                                    type="text"
-                                    placeholder="Enter BP score"
-                                    value={bpScore}
-                                    onChange={(e) => setBpScore(e.target.value)}
-                                    className="w-full h-10 border-2 border-blue-200 bg-white rounded-md px-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors text-sm"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-3 mt-6">
-                        <button
-                            onClick={handleSendEmail}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors shadow-md"
-                        >
-                            📧 Send Email Report
-                        </button>
-                        <button
-                            onClick={sendToWhatsApp}
-                            className="w-full h-12 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 rounded-md flex items-center justify-center"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" className="mr-2">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                            </svg>
-                            Share on WhatsApp
-                        </button>
-                    </div>
-
-                    <p className="text-center text-xs text-gray-600 mt-2">
-                        🔒 Your health data is secure and private
-                    </p>
+                            const blob = new Blob([csvContent], { type: 'text/csv' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `users-${new Date().toISOString().split('T')[0]}.csv`;
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                        }}
+                        style={{
+                            padding: '8px 16px',
+                            border: `1px solid ${PRIMARY_BLUE}`,
+                            borderRadius: '4px',
+                            backgroundColor: 'transparent',
+                            color: PRIMARY_BLUE,
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        📊 Export to CSV
+                    </button>
                 </div>
             </div>
         </div>
-    );
+</div>
+);
 };
 
-export default HealthCardPage;
+export default AdminUsersPage;
