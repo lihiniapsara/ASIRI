@@ -5,8 +5,9 @@ export interface User {
   email: string;
 }
 
+/*
 export interface Users {
   name: string;
   phone: string;
   email: string;
-}
+}*/
