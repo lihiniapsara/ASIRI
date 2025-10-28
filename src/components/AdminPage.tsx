@@ -2,17 +2,32 @@ import { useState, useEffect } from 'react';
 import { getUsers } from '../services/userService';
 
 const AdminUsersPage = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [password, setPassword] = useState('');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [usersPerPage] = useState(30); // 30 users per page
+    const [usersPerPage] = useState(30);
 
     // Asiri Health colors
     const PRIMARY_BLUE = '#0071bc';
     const LIGHT_BLUE = '#2ea7e0';
     const VERY_LIGHT_BLUE = '#b3e5ff';
+
+    const ADMIN_PASSWORD = '2025';
+
+    // Check if user is already authenticated (localStorage එකෙන්)
+    useEffect(() => {
+        const savedAuth = localStorage.getItem('adminAuthenticated');
+        if (savedAuth === 'true') {
+            setIsAuthenticated(true);
+            loadUsers();
+        } else {
+            setLoading(false);
+        }
+    }, []);
 
     // Load users
     const loadUsers = async () => {
@@ -34,9 +49,25 @@ const AdminUsersPage = () => {
         }
     };
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
+    // Handle login
+    const handleLogin = (e) => {
+        e.preventDefault();
+        if (password === ADMIN_PASSWORD) {
+            setIsAuthenticated(true);
+            localStorage.setItem('adminAuthenticated', 'true');
+            loadUsers();
+        } else {
+            alert('Invalid password!');
+            setPassword('');
+        }
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        localStorage.removeItem('adminAuthenticated');
+        setPassword('');
+    };
 
     // Search filter
     const filteredUsers = users.filter(user =>
@@ -45,13 +76,13 @@ const AdminUsersPage = () => {
         user.phone?.includes(searchTerm)
     );
 
-    // Pagination - 30 users per page
+    // Pagination
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
     const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
     const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
-    // Page numbers for pagination (show max 5 pages)
+    // Page numbers for pagination
     const getPageNumbers = () => {
         const pageNumbers = [];
         const maxPagesToShow = 5;
@@ -80,7 +111,6 @@ const AdminUsersPage = () => {
     // Format phone number
     const formatPhone = (phone) => {
         if (!phone) return '';
-        // Convert 07XXXXXXXX to +947XXXXXXXX
         if (phone.startsWith('07') && phone.length === 10) {
             return `+94${phone.substring(1)}`;
         }
@@ -91,6 +121,88 @@ const AdminUsersPage = () => {
     const getSerialNumber = (index) => {
         return (currentPage - 1) * usersPerPage + index + 1;
     };
+
+    // Login Form
+    if (!isAuthenticated) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                background: `linear-gradient(180deg, ${PRIMARY_BLUE} 0%, ${LIGHT_BLUE} 50%, ${VERY_LIGHT_BLUE} 100%)`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '20px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+                <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '40px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    width: '100%',
+                    maxWidth: '400px'
+                }}>
+                    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                        <h1 style={{
+                            fontSize: '28px',
+                            fontWeight: 'bold',
+                            color: PRIMARY_BLUE,
+                            margin: '0 0 10px 0'
+                        }}>
+                            Admin Access
+                        </h1>
+                        <p style={{ color: '#666', margin: '0' }}>
+                            Enter password to continue
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleLogin}>
+                        <div style={{ marginBottom: '20px' }}>
+                            <input
+                                type="password"
+                                placeholder="Enter admin password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    border: `1px solid #ddd`,
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    boxSizing: 'border-box'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = PRIMARY_BLUE}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                backgroundColor: PRIMARY_BLUE,
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = LIGHT_BLUE}
+                            onMouseOut={(e) => e.target.style.backgroundColor = PRIMARY_BLUE}
+                        >
+                            Login
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -201,6 +313,36 @@ const AdminUsersPage = () => {
                         >
                             <span>🔄</span>
                             Refresh
+                        </button>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 16px',
+                                border: `1px solid ${PRIMARY_BLUE}`,
+                                borderRadius: '6px',
+                                backgroundColor: 'transparent',
+                                color: PRIMARY_BLUE,
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                                e.target.style.backgroundColor = PRIMARY_BLUE;
+                                e.target.style.color = 'white';
+                            }}
+                            onMouseOut={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
+                                e.target.style.color = PRIMARY_BLUE;
+                            }}
+                        >
+                            <span>🚪</span>
+                            Logout
                         </button>
                     </div>
                 </div>
