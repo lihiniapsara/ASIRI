@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 import { getUsers } from '../services/userService';
 
+// User interface definition
+interface User {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    createdAt?: any;
+    title?: string;
+}
+
 const AdminUsersPage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<User[]>([]); // Add type here
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null); // Add type here
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [usersPerPage] = useState(30);
@@ -18,7 +28,7 @@ const AdminUsersPage = () => {
 
     const ADMIN_PASSWORD = '2025';
 
-    // Check if user is already authenticated (localStorage එකෙන්)
+    // Check if user is already authenticated
     useEffect(() => {
         const savedAuth = localStorage.getItem('adminAuthenticated');
         if (savedAuth === 'true') {
@@ -50,7 +60,7 @@ const AdminUsersPage = () => {
     };
 
     // Handle login
-    const handleLogin = (e) => {
+    const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         if (password === ADMIN_PASSWORD) {
             setIsAuthenticated(true);
@@ -109,7 +119,7 @@ const AdminUsersPage = () => {
     };
 
     // Format phone number
-    const formatPhone = (phone) => {
+    const formatPhone = (phone: string) => {
         if (!phone) return '';
         if (phone.startsWith('07') && phone.length === 10) {
             return `+94${phone.substring(1)}`;
@@ -118,7 +128,7 @@ const AdminUsersPage = () => {
     };
 
     // Calculate serial number for each user (1,2,3,...)
-    const getSerialNumber = (index) => {
+    const getSerialNumber = (index: number) => {
         return (currentPage - 1) * usersPerPage + index + 1;
     };
 
@@ -173,8 +183,8 @@ const AdminUsersPage = () => {
                                     transition: 'border-color 0.2s',
                                     boxSizing: 'border-box'
                                 }}
-                                onFocus={(e) => e.target.style.borderColor = PRIMARY_BLUE}
-                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = PRIMARY_BLUE}
+                                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
                                 required
                             />
                         </div>
@@ -193,8 +203,8 @@ const AdminUsersPage = () => {
                                 fontWeight: '500',
                                 transition: 'background-color 0.2s'
                             }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = LIGHT_BLUE}
-                            onMouseOut={(e) => e.target.style.backgroundColor = PRIMARY_BLUE}
+                            onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = LIGHT_BLUE}
+                            onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = PRIMARY_BLUE}
                         >
                             Login
                         </button>
@@ -277,8 +287,8 @@ const AdminUsersPage = () => {
                                     outline: 'none',
                                     transition: 'border-color 0.2s'
                                 }}
-                                onFocus={(e) => e.target.style.borderColor = PRIMARY_BLUE}
-                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = PRIMARY_BLUE}
+                                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
                             />
                             <span style={{
                                 position: 'absolute',
@@ -308,8 +318,8 @@ const AdminUsersPage = () => {
                                 fontWeight: '500',
                                 transition: 'background-color 0.2s'
                             }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = LIGHT_BLUE}
-                            onMouseOut={(e) => e.target.style.backgroundColor = PRIMARY_BLUE}
+                            onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = LIGHT_BLUE}
+                            onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = PRIMARY_BLUE}
                         >
                             <span>🔄</span>
                             Refresh
@@ -333,12 +343,12 @@ const AdminUsersPage = () => {
                                 transition: 'all 0.2s'
                             }}
                             onMouseOver={(e) => {
-                                e.target.style.backgroundColor = PRIMARY_BLUE;
-                                e.target.style.color = 'white';
+                                (e.target as HTMLButtonElement).style.backgroundColor = PRIMARY_BLUE;
+                                (e.target as HTMLButtonElement).style.color = 'white';
                             }}
                             onMouseOut={(e) => {
-                                e.target.style.backgroundColor = 'transparent';
-                                e.target.style.color = PRIMARY_BLUE;
+                                (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+                                (e.target as HTMLButtonElement).style.color = PRIMARY_BLUE;
                             }}
                         >
                             <span>🚪</span>
@@ -450,7 +460,7 @@ const AdminUsersPage = () => {
                             {currentUsers.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan="5"
+                                        colSpan={5}
                                         style={{
                                             padding: '40px',
                                             textAlign: 'center',
