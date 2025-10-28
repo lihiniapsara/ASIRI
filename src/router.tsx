@@ -13,9 +13,12 @@ const router = createBrowserRouter([
       { path: "/", element: <Login /> },
       { path: "/quiz", element: <Quiz />},
       { path: "/expert", element: <Expert />},
-      { path: "/admin", element: <Admin />},
     ],
   },
+  {
+    path: "/admin",
+    element: <Admin />,
+  }
 ])
 
 export default router
