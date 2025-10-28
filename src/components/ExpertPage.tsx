@@ -87,12 +87,12 @@ const HealthCardPage = () => {
 
     const handleSendEmail = () => {
         if (!user.email) {
-            alert('Please enter user email first');
+           // alert('Please enter user email first');
             return;
         }
 
         if (!rstScore || !bpScore || !bmiScore) {
-            alert('Please enter all health scores first');
+           // alert('Please enter all health scores first');
             return;
         }
 
@@ -102,7 +102,7 @@ const HealthCardPage = () => {
             name: user.name || 'User',
             email: user.email,
             title: user.title,
-            message: `Your scores are: RST - ${rstScore}, BP - ${bpScore}, BMI - ${bmiScore}. Lifescore: ${user.lifescore}%`
+            message: `Your scores are:\n\nRST: ${rstScore}\nBP: ${bpScore}\nBMI: ${bmiScore}\nLifescore: ${user.lifescore}%`
         };
 
         const SERVICE_ID = 'service_g9ud6tf';
@@ -112,20 +112,20 @@ const HealthCardPage = () => {
         emailjs
             .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
             .then(() => {
-                alert('Email sent successfully!');
+               // alert('Email sent successfully!');
                 setRstScore('');
                 setBpScore('');
                 setBmiScore('');
             })
             .catch((error) => {
                 console.error('Email sending failed:', error);
-                alert('Failed to send email. Please try again.');
+               // alert('Failed to send email. Please try again.');
             });
     };
 
     const sendToWhatsApp = () => {
         if (!bmiScore || !rstScore || !bpScore) {
-            alert('Please enter all health scores first');
+           // alert('Please enter all health scores first');
             return;
         }
 
