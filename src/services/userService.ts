@@ -32,10 +32,11 @@ export const deleteUser = async (userId: string) => {
   }
 };
 
-export const getUsers = async () => {
+// services/userService.ts එකේ
+export const getUsers = async (): Promise<{success: boolean; data?: User[]; error?: any}> => {
   try {
     const querySnapshot = await getDocs(usersCollectionRef);
-    const users = querySnapshot.docs.map(doc => {
+    const users: User[] = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -43,7 +44,6 @@ export const getUsers = async () => {
         phone: data.phone || '',
         email: data.email || '',
         createdAt: data.createdAt || null
-
       };
     });
 

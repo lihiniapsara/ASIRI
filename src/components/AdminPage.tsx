@@ -14,9 +14,9 @@ interface User {
 const AdminUsersPage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
-    const [users, setUsers] = useState<User[]>([]); // Add type here
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null); // Add type here
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [usersPerPage] = useState(30);
@@ -39,21 +39,32 @@ const AdminUsersPage = () => {
         }
     }, []);
 
-    // Load users
+    // Load users - FIXED VERSION
     const loadUsers = async () => {
         try {
             setLoading(true);
             const result = await getUsers();
 
-            if (result.success) {
-                setUsers(result.data);
+            if (result.success && result.data) {
+                // Ensure data is properly typed
+                const userData: User[] = result.data.map((user: any) => ({
+                    id: user.id || '',
+                    name: user.name || '',
+                    phone: user.phone || '',
+                    email: user.email || '',
+                    createdAt: user.createdAt || null,
+                    title: user.title || ''
+                }));
+                setUsers(userData);
                 setError(null);
             } else {
                 setError('Failed to load users');
+                setUsers([]); // Set empty array on failure
             }
         } catch (err) {
             setError('Error occurred while loading users');
             console.error('Error loading users:', err);
+            setUsers([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
