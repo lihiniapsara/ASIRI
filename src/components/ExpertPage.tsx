@@ -126,8 +126,8 @@ const HealthCardPage = () => {
     };
 
     const sendToWhatsApp = () => {
-        if (!bmiScore || !rstScore || !bpScore || !user.phone) {
-            alert('Please enter all health scores and patient phone number');
+        if (!bmiScore || !rstScore || !bpScore) {
+            //alert('Please enter all health scores first');
             return;
         }
 
@@ -148,59 +148,34 @@ const HealthCardPage = () => {
 
 Thank you for choosing ASIRI HEALTH`;
 
-        const cleanedPhone = user.phone.replace(/\D/g, '');
-        const phoneWithCountryCode = '94' + cleanedPhone.substring(1);
+        const encodedMessage = encodeURIComponent(message);
 
-        // Check if we've "saved" this contact before
-        const contactKey = `asiri_contact_${cleanedPhone}`;
-        const isContactSaved = localStorage.getItem(contactKey);
+        // ✅ KeyOS compatible WhatsApp
+        if (user.phone && user.phone.trim() !== '') {
+            const cleanedPhone = user.phone.replace(/\D/g, '');
 
-        if (isContactSaved === 'true') {
-            // ✅ Contact already "saved" - direct WhatsApp
-            console.log('Opening WhatsApp for saved contact:', user.name);
-            const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneWithCountryCode}&text=${encodeURIComponent(message)}`;
+            let phoneWithCountryCode = cleanedPhone;
+            if (phoneWithCountryCode.startsWith('0')) {
+                phoneWithCountryCode = '94' + phoneWithCountryCode.substring(1);
+            } else if (!phoneWithCountryCode.startsWith('94')) {
+                phoneWithCountryCode = '94' + phoneWithCountryCode;
+            }
+
+            console.log('Formatted phone number:', phoneWithCountryCode);
+
+            // ✅ KeyOS primary method - wa.me
+            const whatsappUrl = `https://wa.me/${phoneWithCountryCode}?text=${encodedMessage}`;
+            console.log('WhatsApp URL:', whatsappUrl);
+
             window.open(whatsappUrl, '_blank');
 
         } else {
-            // ❌ First time - offer to save contact
-            const userChoice = confirm(
-                `💡 FASTER WHATSAPP SETUP\n\n` +
-                `Patient: ${user.title} ${user.name}\n` +
-                `Phone: ${user.phone}\n\n` +
-                `Would you like to save this contact for instant WhatsApp messaging in the future?\n\n` +
-                `OK = Save contact + Open WhatsApp\n` +
-                `Cancel = Open WhatsApp only`
-            );
-
-            if (userChoice) {
-                // Save contact to localStorage
-                localStorage.setItem(contactKey, 'true');
-
-                // Optional: Create downloadable contact file
-                const vCard = `BEGIN:VCARD
-VERSION:3.0
-FN:${user.title} ${user.name}
-TEL;TYPE=CELL:${user.phone}
-ORG:ASIRI HEALTH
-NOTE:Health Card Patient
-END:VCARD`;
-
-                const blob = new Blob([vCard], { type: 'text/vcard' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ASIRI_${user.name.replace(/\s+/g, '_')}.vcf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-
-            // Open WhatsApp (whether contact saved or not)
-            const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneWithCountryCode}&text=${encodeURIComponent(message)}`;
+            // ✅ Phone number na-thiyenam, share krayi
+            const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
             window.open(whatsappUrl, '_blank');
         }
     };
+
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 100, height: 'auto' },
