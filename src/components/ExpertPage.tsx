@@ -9,7 +9,7 @@ const VERY_LIGHT_BLUE = '#a8e0ffff';
 
 type Size = 'small' | 'medium' | 'large';
 
-const HealthCardPage = () => {
+const ExpertPage = () => {  // Renamed to match error file; change back if needed
     const [user, setUser] = useState({
         title: 'Mr.',
         name: '',
@@ -89,12 +89,12 @@ const HealthCardPage = () => {
 
     const handleSendEmail = () => {
         if (!user.email) {
-          //  alert('Please enter user email first');
+            // alert('Please enter user email first');
             return;
         }
 
         if (!rstScore || !bpScore || !bmiScore) {
-            //alert('Please enter all health scores first');
+            // alert('Please enter all health scores first');
             return;
         }
 
@@ -104,7 +104,7 @@ const HealthCardPage = () => {
             name: user.name || 'User',
             email: user.email,
             title: user.title,
-            message: `Your scores are:\n\nRST: ${rstScore}\nBP: ${bpScore}\nBMI: ${bmiScore}\nLifescore: ${user.lifescore}%`
+            message: `Your scores are:\n\nRST: ${rstScore}\nBP: ${bpScore}\nBMI: ${bmiScore}\nLifescore: ${user.lifescore}%`,
         };
 
         const SERVICE_ID = 'service_g9ud6tf';
@@ -114,20 +114,19 @@ const HealthCardPage = () => {
         emailjs
             .send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)
             .then(() => {
-               // alert('Email sent successfully!');
+                // alert('Email sent successfully!');
                 setRstScore('');
                 setBpScore('');
                 setBmiScore('');
             })
             .catch((error) => {
                 console.error('Email sending failed:', error);
-               // alert('Failed to send email. Please try again.');
+                // alert('Failed to send email. Please try again.');
             });
     };
 
     const sendToWhatsApp = () => {
         if (!bmiScore || !rstScore || !bpScore) {
-            //alert('Please enter all health scores first');
             return;
         }
 
@@ -148,34 +147,59 @@ const HealthCardPage = () => {
 
 Thank you for choosing ASIRI HEALTH`;
 
-        const encodedMessage = encodeURIComponent(message);
+        // ඔබගේ default business number එක
+        const YOUR_BUSINESS_NUMBER = "94762465878"; // 🔁 ඔබගේ number එකට change කරන්න
 
-        // ✅ KeyOS compatible WhatsApp
         if (user.phone && user.phone.trim() !== '') {
-            const cleanedPhone = user.phone.replace(/\D/g, '');
+            // Userගේ phone number එක format කිරීම
+            const cleanedUserPhone = user.phone.replace(/\D/g, '');
+            let userPhoneWithCountryCode = cleanedUserPhone;
 
-            let phoneWithCountryCode = cleanedPhone;
-            if (phoneWithCountryCode.startsWith('0')) {
-                phoneWithCountryCode = '94' + phoneWithCountryCode.substring(1);
-            } else if (!phoneWithCountryCode.startsWith('94')) {
-                phoneWithCountryCode = '94' + phoneWithCountryCode;
+            if (cleanedUserPhone.startsWith('0')) {
+                userPhoneWithCountryCode = '94' + cleanedUserPhone.substring(1);
+            } else if (!cleanedUserPhone.startsWith('94')) {
+                userPhoneWithCountryCode = '94' + cleanedUserPhone;
             }
 
-            console.log('Formatted phone number:', phoneWithCountryCode);
+            // ඔබගේ business number එක format කිරීම
+            const cleanedBusinessPhone = YOUR_BUSINESS_NUMBER.replace(/\D/g, '');
+            let businessPhoneWithCountryCode = cleanedBusinessPhone;
 
-            // ✅ KeyOS primary method - wa.me
-            const whatsappUrl = `https://wa.me/${phoneWithCountryCode}?text=${encodedMessage}`;
+            if (cleanedBusinessPhone.startsWith('0')) {
+                businessPhoneWithCountryCode = '94' + cleanedBusinessPhone.substring(1);
+            } else if (!cleanedBusinessPhone.startsWith('94')) {
+                businessPhoneWithCountryCode = '94' + cleanedBusinessPhone;
+            }
+
+            const encodedMessage = encodeURIComponent(message.trim());
+
+            // abid parameter එක use කරමින් URL create කිරීම
+            // මෙයගන් userගේ number එකට, ඔබගේ number එකෙන් message එක send කරයි
+            const whatsappUrl = `https://wa.me/${userPhoneWithCountryCode}?text=${encodedMessage}&abid=${businessPhoneWithCountryCode}`;
+
+            console.log('User phone:', userPhoneWithCountryCode);
+            console.log('Business phone:', businessPhoneWithCountryCode);
             console.log('WhatsApp URL:', whatsappUrl);
 
-            window.open(whatsappUrl, '_blank');
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
         } else {
-            // ✅ Phone number na-thiyenam, share krayi
-            const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-            window.open(whatsappUrl, '_blank');
+            // Userගේ phone number නැතිනම්, ඔබගේ number එකටම send කරන්න
+            const cleanedPhone = YOUR_BUSINESS_NUMBER.replace(/\D/g, '');
+            let phoneWithCountryCode = cleanedPhone;
+
+            if (cleanedPhone.startsWith('0')) {
+                phoneWithCountryCode = '94' + cleanedPhone.substring(1);
+            } else if (!cleanedPhone.startsWith('94')) {
+                phoneWithCountryCode = '94' + cleanedPhone;
+            }
+
+            const encodedMessage = encodeURIComponent(message.trim());
+            const whatsappUrl = `https://wa.me/${phoneWithCountryCode}?text=${encodedMessage}`;
+
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
         }
     };
-
     const Logo = ({ size = 'medium' }: { size?: Size }) => {
         const sizes: Record<Size, { width: number; height: string }> = {
             small: { width: 100, height: 'auto' },
@@ -459,4 +483,4 @@ Thank you for choosing ASIRI HEALTH`;
     );
 };
 
-export default HealthCardPage;
+export default ExpertPage;
