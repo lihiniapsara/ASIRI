@@ -148,7 +148,7 @@ const ExpertPage = () => {  // Renamed to match error file; change back if neede
 Thank you for choosing ASIRI HEALTH`;
 
         // ඔබගේ default business number එක
-        const YOUR_BUSINESS_NUMBER = "94762465878"; // 🔁 ඔබගේ number එකට change කරන්න
+        const YOUR_BUSINESS_NUMBER = "94758585581"; // 🔁 ඔබගේ number එකට change කරන්න
 
         if (user.phone && user.phone.trim() !== '') {
             // Userගේ phone number එක format කිරීම
